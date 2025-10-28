@@ -79,7 +79,11 @@ export const useMultiSwapRfq = () => {
               if (event.type === "quoteUpdated") {
                 dispatch({
                   type: "SET_SWAP_QUOTE",
-                  payload: { id: swap.id, quote: event.quote },
+                  payload: {
+                    id: swap.id,
+                    quote: event.quote,
+                    rfqId: event.rfqId,
+                  },
                 });
                 subscription.unsubscribe();
                 resolve();

@@ -2,13 +2,15 @@
 
 import { Blockchain } from "@ston-fi/omniston-sdk-react";
 import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, Loader2 } from "lucide-react";
 import { useState } from "react";
 
+import { AddressPreview } from "@/components/AddressPreview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Copy } from "@/components/ui/copy";
 import { useOmniston } from "@/hooks/useOmniston";
-import { bigNumberToFloat } from "@/lib/utils";
+import { bigNumberToFloat, trimStringWithEllipsis } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import {
   type SwapItem,
@@ -60,9 +62,13 @@ const SwapExecuteItem = ({
 
   const [isExecuting, setIsExecuting] = useState(false);
   const [isExecuted, setIsExecuted] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const bidAsset = getAssetByAddress(TON_ADDRESS);
   const askAsset = getAssetByAddress(swap.askAddress);
+  const protocolFeeAsset = swap.quote?.protocolFeeAsset
+    ? getAssetByAddress(swap.quote.protocolFeeAsset.address)
+    : null;
 
   if (!swap.quote || !bidAsset || !askAsset) {
     return null;
@@ -124,42 +130,111 @@ const SwapExecuteItem = ({
   };
 
   return (
-    <div className="flex items-center gap-3 p-3 border rounded-md">
-      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium shrink-0">
-        {index + 1}
+    <div className="border rounded-md">
+      <div className="flex items-center gap-3 p-3">
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium shrink-0">
+          {index + 1}
+        </div>
+
+        <div className="flex-1 text-sm">
+          <div className="font-medium">
+            {bigNumberToFloat(swap.quote.bidUnits, bidAsset.meta.decimals)}{" "}
+            {bidAsset.meta.symbol} →{" "}
+            {bigNumberToFloat(swap.quote.askUnits, askAsset.meta.decimals)}{" "}
+            {askAsset.meta.symbol}
+          </div>
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 mt-1"
+          >
+            <span>Quote ID: {swap.quote.quoteId.slice(0, 8)}...</span>
+            <ChevronDown
+              size={12}
+              className={`transition-transform ${showDetails ? "rotate-180" : ""}`}
+            />
+          </button>
+        </div>
+
+        {isExecuted ? (
+          <div className="flex items-center gap-2 text-green-600 text-sm">
+            <CheckCircle2 size={16} />
+            <span>Executed</span>
+          </div>
+        ) : wallet ? (
+          <Button onClick={handleExecute} disabled={isExecuting} size="sm">
+            {isExecuting ? (
+              <>
+                <Loader2 size={14} className="mr-1 animate-spin" />
+                Executing...
+              </>
+            ) : (
+              "Execute"
+            )}
+          </Button>
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            Connect wallet to execute
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 text-sm">
-        <div className="font-medium">
-          {bigNumberToFloat(swap.quote.bidUnits, bidAsset.meta.decimals)}{" "}
-          {bidAsset.meta.symbol} →{" "}
-          {bigNumberToFloat(swap.quote.askUnits, askAsset.meta.decimals)}{" "}
-          {askAsset.meta.symbol}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          Quote ID: {swap.quote.quoteId.slice(0, 8)}...
-        </div>
-      </div>
-
-      {isExecuted ? (
-        <div className="flex items-center gap-2 text-green-600 text-sm">
-          <CheckCircle2 size={16} />
-          <span>Executed</span>
-        </div>
-      ) : wallet ? (
-        <Button onClick={handleExecute} disabled={isExecuting} size="sm">
-          {isExecuting ? (
-            <>
-              <Loader2 size={14} className="mr-1 animate-spin" />
-              Executing...
-            </>
-          ) : (
-            "Execute"
-          )}
-        </Button>
-      ) : (
-        <div className="text-sm text-muted-foreground">
-          Connect wallet to execute
+      {showDetails && (
+        <div className="border-t p-3 bg-secondary/20">
+          <ul className="space-y-2 text-xs [&>li]:grid [&>li]:grid-cols-[max-content_1fr] [&>li]:gap-2 [&>li>*:nth-child(2)]:ml-auto [&>li>*:nth-child(2)]:font-mono [&>li>*:nth-child(2)]:truncate">
+            {swap.rfqId && (
+              <li>
+                <span>RFQ ID:</span>
+                <Copy value={swap.rfqId}>
+                  {trimStringWithEllipsis(swap.rfqId, 6)}
+                </Copy>
+              </li>
+            )}
+            <li>
+              <span>Quote ID:</span>
+              <Copy value={swap.quote.quoteId}>
+                {trimStringWithEllipsis(swap.quote.quoteId, 6)}
+              </Copy>
+            </li>
+            <li>
+              <span>Resolved by:</span>
+              <AddressPreview address={swap.quote.resolverId}>
+                {swap.quote.resolverName}
+              </AddressPreview>
+            </li>
+            <hr />
+            <li>
+              <span>Bid amount:</span>
+              <span>
+                {bigNumberToFloat(swap.quote.bidUnits, bidAsset.meta.decimals)}{" "}
+                {bidAsset.meta.symbol}
+              </span>
+            </li>
+            <li>
+              <span>Ask amount:</span>
+              <span>
+                {bigNumberToFloat(swap.quote.askUnits, askAsset.meta.decimals)}{" "}
+                {askAsset.meta.symbol}
+              </span>
+            </li>
+            {protocolFeeAsset && (
+              <li>
+                <span>Protocol fee:</span>
+                <span>
+                  {bigNumberToFloat(
+                    swap.quote.protocolFeeUnits,
+                    protocolFeeAsset.meta.decimals,
+                  )}{" "}
+                  {protocolFeeAsset.meta.symbol}
+                </span>
+              </li>
+            )}
+            <li>
+              <span>Estimated gas:</span>
+              <span>
+                {bigNumberToFloat(swap.quote.estimatedGasConsumption, 9)} TON
+              </span>
+            </li>
+          </ul>
         </div>
       )}
     </div>

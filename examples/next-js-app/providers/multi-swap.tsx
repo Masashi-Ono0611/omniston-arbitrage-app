@@ -15,6 +15,7 @@ export type SwapItem = {
   bidAmount: string;
   slippage: number;
   quote: Quote | null;
+  rfqId: string | null;
   status: "idle" | "loading" | "success" | "error";
   error: string | null;
 };
@@ -33,6 +34,7 @@ const initialState: MultiSwapState = {
       bidAmount: "",
       slippage: 0.05,
       quote: null,
+      rfqId: null,
       status: "idle",
       error: null,
     },
@@ -50,7 +52,7 @@ type MultiSwapAction =
     }
   | {
       type: "SET_SWAP_QUOTE";
-      payload: { id: string; quote: Quote };
+      payload: { id: string; quote: Quote; rfqId: string };
     }
   | {
       type: "SET_SWAP_STATUS";
@@ -87,6 +89,7 @@ const multiSwapReducer = (
             bidAmount: "",
             slippage: 0.05,
             quote: null,
+            rfqId: null,
             status: "idle",
             error: null,
           },
@@ -118,6 +121,7 @@ const multiSwapReducer = (
             ? {
                 ...swap,
                 quote: action.payload.quote,
+                rfqId: action.payload.rfqId,
                 status: "success",
                 error: null,
               }
@@ -149,6 +153,7 @@ const multiSwapReducer = (
           status: "idle",
           error: null,
           quote: null,
+          rfqId: null,
         })),
       };
 
@@ -170,7 +175,7 @@ const multiSwapReducer = (
         ...state,
         swaps: state.swaps.map((swap) =>
           swap.id === action.payload
-            ? { ...swap, quote: null, status: "idle", error: null }
+            ? { ...swap, quote: null, rfqId: null, status: "idle", error: null }
             : swap,
         ),
       };
