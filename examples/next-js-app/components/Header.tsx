@@ -2,12 +2,17 @@
 
 import { TonConnectButton } from "@tonconnect/ui-react";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import GitBookIcon from "@/public/icons/gitbook.svg";
 import GitHubIcon from "@/public/icons/github.svg";
 
 export function Header() {
+  const pathname = usePathname();
+
   return (
     <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background justify-between">
       <section className="container flex items-center gap-4">
@@ -26,6 +31,31 @@ export function Header() {
             example
           </Badge>
         </a>
+
+        <nav className="flex gap-2 mr-auto ml-8">
+          <Link
+            href="/"
+            className={cn(
+              "px-3 py-1.5 text-sm rounded-md transition-colors",
+              pathname === "/"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-secondary",
+            )}
+          >
+            Single Swap
+          </Link>
+          <Link
+            href="/multi-swap"
+            className={cn(
+              "px-3 py-1.5 text-sm rounded-md transition-colors",
+              pathname === "/multi-swap"
+                ? "bg-primary text-primary-foreground"
+                : "hover:bg-secondary",
+            )}
+          >
+            Multi Swap
+          </Link>
+        </nav>
 
         <TonConnectButton />
         <a

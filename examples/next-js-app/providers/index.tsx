@@ -6,6 +6,7 @@ import { THEME, TonConnectUIProvider } from "@tonconnect/ui-react";
 import React, { useRef } from "react";
 
 import { AssetsProvider } from "./assets";
+import { MultiSwapProvider } from "./multi-swap";
 import { SwapFormProvider } from "./swap-form";
 import { SwapSettingsProvider } from "./swap-settings";
 import { TrackingQuoteProvider } from "./tracking-quote";
@@ -41,7 +42,9 @@ export function Providers({
           <OmnistonProvider omniston={omniston.current}>
             <SwapSettingsProvider>
               <SwapFormProvider>
-                <TrackingQuoteProvider>{children}</TrackingQuoteProvider>
+                <MultiSwapProvider>
+                  <TrackingQuoteProvider>{children}</TrackingQuoteProvider>
+                </MultiSwapProvider>
               </SwapFormProvider>
             </SwapSettingsProvider>
           </OmnistonProvider>
