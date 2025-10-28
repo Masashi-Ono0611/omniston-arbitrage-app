@@ -64,22 +64,8 @@ const SwapExecuteItem = ({
   const bidAsset = getAssetByAddress(TON_ADDRESS);
   const askAsset = getAssetByAddress(swap.askAddress);
 
-  if (!swap.quote) {
+  if (!swap.quote || !bidAsset || !askAsset) {
     return null;
-  }
-
-  if (!bidAsset || !askAsset) {
-    console.warn("Assets not loaded yet:", { bidAsset, askAsset, swap });
-    return (
-      <div className="flex items-center gap-3 p-3 border rounded-md">
-        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-medium shrink-0">
-          {index + 1}
-        </div>
-        <div className="flex-1 text-sm text-muted-foreground">
-          Loading asset information...
-        </div>
-      </div>
-    );
   }
 
   const handleExecute = async () => {
@@ -129,14 +115,9 @@ const SwapExecuteItem = ({
       });
 
       setIsExecuted(true);
-
-      // Reset quote after execution
       dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id });
     } catch (error) {
       console.error("Failed to execute swap:", error);
-      alert(
-        `Failed to execute swap: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
     } finally {
       setIsExecuting(false);
     }

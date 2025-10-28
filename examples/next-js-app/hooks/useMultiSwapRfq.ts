@@ -94,7 +94,6 @@ export const useMultiSwapRfq = () => {
             },
           });
 
-          // Abort handling
           if (abortControllerRef.current) {
             abortControllerRef.current.signal.addEventListener("abort", () => {
               subscription.unsubscribe();
@@ -103,11 +102,7 @@ export const useMultiSwapRfq = () => {
           }
         });
       } catch (error) {
-        // Retry logic
         if (retryCount < MAX_RETRY_ATTEMPTS) {
-          console.warn(
-            `Retry ${retryCount + 1}/${MAX_RETRY_ATTEMPTS} for swap ${swap.id}`,
-          );
           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
           return getQuoteForSwap(swap, retryCount + 1);
         }

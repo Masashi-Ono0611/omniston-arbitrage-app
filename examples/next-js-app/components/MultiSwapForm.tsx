@@ -71,7 +71,6 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
 
   const handleAskAssetChange = (asset: AssetMetadata | null) => {
     if (asset) {
-      // Insert asset to ensure it's available in the assets context
       insertAsset(asset);
     }
 
