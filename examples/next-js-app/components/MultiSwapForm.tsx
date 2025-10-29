@@ -2,13 +2,16 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import type { ChangeEvent } from "react";
+import { useCallback } from "react";
 
 import { AssetSelect } from "@/components/AssetSelect";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { SWAP_CONFIG } from "@/lib/constants";
+import { cn, decimalToPercent, percentToDecimal } from "@/lib/utils";
+import { validateFloatValue } from "@/lib/validators";
 import type { AssetMetadata } from "@/models/asset";
 import { useAssets } from "@/providers/assets";
 import {
@@ -16,11 +19,6 @@ import {
   useMultiSwap,
   useMultiSwapDispatch,
 } from "@/providers/multi-swap";
-
-const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
-
-const validateFloatValue = (value: string): boolean =>
-  /^([0-9]+([.][0-9]*)?|[.][0-9]+)$/.test(value);
 
 export const MultiSwapForm = () => {
   const { swaps } = useMultiSwap();
@@ -36,12 +34,12 @@ export const MultiSwapForm = () => {
         <h2 className="text-lg font-medium">Multi Swap Configuration</h2>
         <Button
           onClick={handleAddSwap}
-          disabled={swaps.length >= 5}
+          disabled={swaps.length >= SWAP_CONFIG.MAX_SWAPS}
           variant="outline"
           size="sm"
         >
           <Plus size={16} className="mr-1" />
-          Add Swap ({swaps.length}/5)
+          Add Swap ({swaps.length}/{SWAP_CONFIG.MAX_SWAPS})
         </Button>
       </div>
 
@@ -59,29 +57,39 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
   const dispatch = useMultiSwapDispatch();
   const { getAssetByAddress, assetsQuery, insertAsset } = useAssets();
 
+  const bidAsset = getAssetByAddress(swap.bidAddress);
   const askAsset = getAssetByAddress(swap.askAddress);
 
-  const availableAssets = [...(assetsQuery.data ?? new Map()).values()].filter(
-    (asset) => asset.contractAddress !== TON_ADDRESS,
+  const allAssets = [...(assetsQuery.data ?? new Map()).values()];
+  const availableAskAssets = allAssets.filter(
+    (asset) => asset.contractAddress !== swap.bidAddress,
+  );
+  const availableBidAssets = allAssets.filter(
+    (asset) => asset.contractAddress !== swap.askAddress,
   );
 
   const handleRemove = () => {
     dispatch({ type: "REMOVE_SWAP", payload: swap.id });
   };
 
-  const handleAskAssetChange = (asset: AssetMetadata | null) => {
-    if (asset) {
-      insertAsset(asset);
-    }
+  const handleAssetChange = useCallback(
+    (type: "bid" | "ask") => (asset: AssetMetadata | null) => {
+      if (asset) {
+        insertAsset(asset);
+      }
 
-    dispatch({
-      type: "UPDATE_SWAP",
-      payload: {
-        id: swap.id,
-        updates: { askAddress: asset?.contractAddress ?? "" },
-      },
-    });
-  };
+      dispatch({
+        type: "UPDATE_SWAP",
+        payload: {
+          id: swap.id,
+          updates: {
+            [`${type}Address`]: asset?.contractAddress ?? "",
+          },
+        },
+      });
+    },
+    [swap.id, dispatch, insertAsset],
+  );
 
   const handleBidAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -97,7 +105,7 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
     const value = e.target.value;
     if (value && !validateFloatValue(value)) return;
 
-    const slippage = parseFloat(value) / 100;
+    const slippage = percentToDecimal(value);
     if (slippage >= 0 && slippage <= 1) {
       dispatch({
         type: "UPDATE_SWAP",
@@ -127,12 +135,21 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
             {index + 1}
           </div>
 
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Bid Asset (TON - Fixed) */}
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Bid Asset */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                You Bid (TON)
-              </Label>
+              <Label className="text-xs text-muted-foreground">You Bid</Label>
+              <AssetSelect
+                assets={availableBidAssets}
+                selectedAsset={bidAsset ?? null}
+                onAssetSelect={handleAssetChange("bid")}
+                loading={assetsQuery.isLoading}
+              />
+            </div>
+
+            {/* Bid Amount */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Amount</Label>
               <Input
                 type="text"
                 placeholder="0.0"
@@ -146,9 +163,9 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">You Ask</Label>
               <AssetSelect
-                assets={availableAssets}
+                assets={availableAskAssets}
                 selectedAsset={askAsset ?? null}
-                onAssetSelect={handleAskAssetChange}
+                onAssetSelect={handleAssetChange("ask")}
                 loading={assetsQuery.isLoading}
               />
             </div>
@@ -161,7 +178,7 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
               <Input
                 type="text"
                 placeholder="5.0"
-                value={(swap.slippage * 100).toString()}
+                value={decimalToPercent(swap.slippage)}
                 onChange={handleSlippageChange}
                 disabled={swap.status === "loading"}
               />
@@ -181,16 +198,8 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
         </div>
 
         {/* Status Display */}
-        {swap.status === "loading" && (
-          <div className="mt-3 text-sm text-blue-600">Getting quote...</div>
-        )}
         {swap.status === "error" && swap.error && (
           <div className="mt-3 text-sm text-red-600">Error: {swap.error}</div>
-        )}
-        {swap.status === "success" && swap.quote && (
-          <div className="mt-3 text-sm text-green-600">
-            Quote received: {swap.quote.quoteId.slice(0, 8)}...
-          </div>
         )}
       </CardContent>
     </Card>

@@ -12,6 +12,12 @@ dist
 coverage
 *.local
 
+# Environment files (keep .env.example only)
+.env
+.env.development
+.env.production
+.env.test
+
 # Editor directories and files
 .vscode
 .idea

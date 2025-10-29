@@ -8,6 +8,9 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
+import { RETRY_CONFIG, SWAP_CONFIG } from "@/lib/constants";
+import { formatError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import { floatToBigNumber, percentToPercentBps } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import {
@@ -15,10 +18,6 @@ import {
   useMultiSwap,
   useMultiSwapDispatch,
 } from "@/providers/multi-swap";
-
-const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 2000;
 
 export const useMultiSwapRfq = () => {
   const omniston = useOmniston();
@@ -29,11 +28,11 @@ export const useMultiSwapRfq = () => {
 
   const getQuoteForSwap = useCallback(
     async (swap: SwapItem, retryCount = 0): Promise<void> => {
-      if (!swap.askAddress || !swap.bidAmount) {
+      if (!swap.bidAddress || !swap.askAddress || !swap.bidAmount) {
         throw new Error("Missing required fields");
       }
 
-      const bidAsset = getAssetByAddress(TON_ADDRESS);
+      const bidAsset = getAssetByAddress(swap.bidAddress);
       const askAsset = getAssetByAddress(swap.askAddress);
 
       if (!bidAsset || !askAsset) {
@@ -47,7 +46,7 @@ export const useMultiSwapRfq = () => {
           blockchain: Blockchain.TON,
         },
         bidAssetAddress: {
-          address: TON_ADDRESS,
+          address: swap.bidAddress,
           blockchain: Blockchain.TON,
         },
         amount: {
@@ -59,7 +58,7 @@ export const useMultiSwapRfq = () => {
         },
         settlementParams: {
           maxPriceSlippageBps: percentToPercentBps(swap.slippage),
-          maxOutgoingMessages: 4,
+          maxOutgoingMessages: SWAP_CONFIG.MAX_OUTGOING_MESSAGES,
           gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
           flexibleReferrerFee: false,
         },
@@ -106,16 +105,16 @@ export const useMultiSwapRfq = () => {
           }
         });
       } catch (error) {
-        if (retryCount < MAX_RETRY_ATTEMPTS) {
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        if (retryCount < RETRY_CONFIG.MAX_ATTEMPTS) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, RETRY_CONFIG.DELAY_MS),
+          );
           return getQuoteForSwap(swap, retryCount + 1);
         }
 
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
         dispatch({
           type: "SET_SWAP_STATUS",
-          payload: { id: swap.id, status: "error", error: errorMessage },
+          payload: { id: swap.id, status: "error", error: formatError(error) },
         });
         throw error;
       }
@@ -142,7 +141,7 @@ export const useMultiSwapRfq = () => {
         await getQuoteForSwap(swap);
       }
     } catch (error) {
-      console.error("Failed to get all quotes:", error);
+      logger.error("Failed to get all quotes:", error);
     } finally {
       dispatch({ type: "FINISH_QUOTING_ALL" });
       abortControllerRef.current = null;

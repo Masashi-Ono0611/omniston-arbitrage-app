@@ -1,5 +1,7 @@
 import { beginCell, Cell } from "@ton/core";
 
+import { logger } from "@/lib/logger";
+
 /**
  * Modifies the QueryID in a TON transaction payload
  * Based on the reference implementation from v2.1
@@ -47,7 +49,7 @@ export function modifyQueryId(payload: string, newQueryId: bigint): string {
 
     return Buffer.from(newCell.endCell().toBoc()).toString("base64");
   } catch (error) {
-    console.error("Error modifying query ID:", error);
+    logger.error("Error modifying query ID:", error);
     return payload; // Return original payload on error
   }
 }

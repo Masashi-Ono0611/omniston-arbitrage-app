@@ -104,8 +104,6 @@
 
 @layer base {
   :root {
-    --test: 0 100% 50%;
-
     --background: 0 0% 100%;
     --foreground: 240 4% 5%;
 

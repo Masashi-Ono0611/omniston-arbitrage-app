@@ -4,30 +4,20 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useMultiSwapRfq } from "@/hooks/useMultiSwapRfq";
+import { validateSwapsForQuote } from "@/lib/validators";
 import { useMultiSwap } from "@/providers/multi-swap";
 
 export const MultiSwapActions = () => {
   const { swaps, isQuotingAll, currentQuotingIndex } = useMultiSwap();
   const { getAllQuotes, cancelQuoting } = useMultiSwapRfq();
 
-  const canGetQuotes = swaps.every(
-    (swap) =>
-      swap.askAddress && swap.bidAmount && parseFloat(swap.bidAmount) > 0,
-  );
-
-  const handleGetAllQuotes = () => {
-    getAllQuotes();
-  };
-
-  const handleCancel = () => {
-    cancelQuoting();
-  };
+  const canGetQuotes = validateSwapsForQuote(swaps);
 
   return (
     <div className="flex flex-col gap-3">
       {/* Get All Quotes Button */}
       <Button
-        onClick={handleGetAllQuotes}
+        onClick={getAllQuotes}
         disabled={!canGetQuotes || isQuotingAll}
         size="lg"
         className="w-full"
@@ -45,7 +35,7 @@ export const MultiSwapActions = () => {
       {/* Cancel Button */}
       {isQuotingAll && (
         <Button
-          onClick={handleCancel}
+          onClick={cancelQuoting}
           variant="outline"
           size="sm"
           className="w-full"

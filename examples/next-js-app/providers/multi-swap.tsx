@@ -9,8 +9,11 @@ import {
   useReducer,
 } from "react";
 
+import { SWAP_CONFIG } from "@/lib/constants";
+
 export type SwapItem = {
   id: string;
+  bidAddress: string;
   askAddress: string;
   bidAmount: string;
   slippage: number;
@@ -26,19 +29,20 @@ type MultiSwapState = {
   currentQuotingIndex: number | null;
 };
 
+const createEmptySwap = (): SwapItem => ({
+  id: crypto.randomUUID(),
+  bidAddress: "",
+  askAddress: "",
+  bidAmount: "",
+  slippage: 0.05,
+  quote: null,
+  rfqId: null,
+  status: "idle",
+  error: null,
+});
+
 const initialState: MultiSwapState = {
-  swaps: [
-    {
-      id: crypto.randomUUID(),
-      askAddress: "",
-      bidAmount: "",
-      slippage: 0.05,
-      quote: null,
-      rfqId: null,
-      status: "idle",
-      error: null,
-    },
-  ],
+  swaps: [createEmptySwap()],
   isQuotingAll: false,
   currentQuotingIndex: null,
 };
@@ -78,22 +82,10 @@ const multiSwapReducer = (
 ): MultiSwapState => {
   switch (action.type) {
     case "ADD_SWAP":
-      if (state.swaps.length >= 5) return state;
+      if (state.swaps.length >= SWAP_CONFIG.MAX_SWAPS) return state;
       return {
         ...state,
-        swaps: [
-          ...state.swaps,
-          {
-            id: crypto.randomUUID(),
-            askAddress: "",
-            bidAmount: "",
-            slippage: 0.05,
-            quote: null,
-            rfqId: null,
-            status: "idle",
-            error: null,
-          },
-        ],
+        swaps: [...state.swaps, createEmptySwap()],
       };
 
     case "REMOVE_SWAP":

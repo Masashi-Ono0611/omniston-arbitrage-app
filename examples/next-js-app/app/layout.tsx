@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { unstable_noStore as noStore } from "next/cache";
 import { Inter } from "next/font/google";
-
 import { Header } from "@/components/Header";
 import { cn, retrieveEnvVariable } from "@/lib/utils";
 import { Providers } from "@/providers";
@@ -19,16 +17,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  noStore();
+  const omnistonApiUrl = retrieveEnvVariable("OMNIDEMO__OMNISTON__API_URL");
+  const tonConnectManifestUrl = retrieveEnvVariable(
+    "OMNIDEMO__TONCONNECT__MANIFEST_URL",
+  );
 
   return (
     <html lang="en">
       <body className={cn(inter.className, "flex flex-col min-h-[100svh]")}>
         <Providers
-          omnistonApiUrl={retrieveEnvVariable("OMNIDEMO__OMNISTON__API_URL")}
-          tonConnectManifestUrl={retrieveEnvVariable(
-            "OMNIDEMO__TONCONNECT__MANIFEST_URL",
-          )}
+          omnistonApiUrl={omnistonApiUrl}
+          tonConnectManifestUrl={tonConnectManifestUrl}
         >
           <Header />
           <main className="container flex flex-col flex-1 h-full py-10">

@@ -2,13 +2,18 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIsConnectionRestored, useTonAddress } from "@tonconnect/ui-react";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { z } from "zod";
 
+import { CACHE_CONFIG, STORAGE_KEYS } from "@/lib/constants";
 import type { AssetMetadata } from "@/models/asset";
 import { assetQueryFactory } from "@/quries/assets";
-
-const UNCONDITIONAL_ASSETS_STORAGE_KEY = "unconditional_assets";
 
 type AssetsContextValue = {
   assetsQuery: ReturnType<
@@ -33,7 +38,7 @@ export const AssetsProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     const persistedUnconditionalAssets = localStorage.getItem(
-      UNCONDITIONAL_ASSETS_STORAGE_KEY,
+      STORAGE_KEYS.UNCONDITIONAL_ASSETS,
     );
 
     if (!persistedUnconditionalAssets) {
@@ -48,7 +53,7 @@ export const AssetsProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     localStorage.setItem(
-      UNCONDITIONAL_ASSETS_STORAGE_KEY,
+      STORAGE_KEYS.UNCONDITIONAL_ASSETS,
       JSON.stringify(unconditionalAssets),
     );
   }, [unconditionalAssets]);
@@ -61,35 +66,41 @@ export const AssetsProvider = ({ children }: { children: React.ReactNode }) => {
     select: (data) =>
       new Map(data.map((asset) => [asset.contractAddress, asset])),
     enabled: isConnectionRestored,
-    refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
-    staleTime: Infinity, // Consider assets metadata as static data
+    refetchInterval: CACHE_CONFIG.ASSETS_REFETCH_INTERVAL_MS,
+    staleTime: CACHE_CONFIG.ASSETS_STALE_TIME,
   });
 
-  const getAssetByAddress = (address: AssetMetadata["contractAddress"]) =>
-    assetsQuery.data?.get(address);
+  const getAssetByAddress = useCallback(
+    (address: AssetMetadata["contractAddress"]) =>
+      assetsQuery.data?.get(address),
+    [assetsQuery.data],
+  );
 
-  const insertAsset = (asset: AssetMetadata) => {
-    if (getAssetByAddress(asset.contractAddress)) return;
+  const insertAsset = useCallback(
+    (asset: AssetMetadata) => {
+      if (assetsQuery.data?.get(asset.contractAddress)) return;
 
-    setUnconditionalAssets((prev) => [...prev, asset.contractAddress]);
-    queryClient.setQueryData(
-      assetQueryFactory.fetch({
-        unconditionalAssets,
-        walletAddress,
-      }).queryKey,
-      (old: AssetMetadata[] | undefined) => {
-        if (!old) return [asset];
+      setUnconditionalAssets((prev) => [...prev, asset.contractAddress]);
+      queryClient.setQueryData(
+        assetQueryFactory.fetch({
+          unconditionalAssets,
+          walletAddress,
+        }).queryKey,
+        (old: AssetMetadata[] | undefined) => {
+          if (!old) return [asset];
 
-        const exists = old.some(
-          (a) => a.contractAddress === asset.contractAddress,
-        );
+          const exists = old.some(
+            (a) => a.contractAddress === asset.contractAddress,
+          );
 
-        if (exists) return old;
+          if (exists) return old;
 
-        return [...old, asset];
-      },
-    );
-  };
+          return [...old, asset];
+        },
+      );
+    },
+    [assetsQuery.data, queryClient, unconditionalAssets, walletAddress],
+  );
 
   return (
     <AssetsContext.Provider
