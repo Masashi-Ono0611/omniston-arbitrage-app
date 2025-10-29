@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { unstable_noStore as noStore } from "next/cache";
 import { Inter } from "next/font/google";
 import { Header } from "@/components/Header";
 import { cn, retrieveEnvVariable } from "@/lib/utils";
@@ -18,8 +17,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  noStore();
-
   const omnistonApiUrl = retrieveEnvVariable("OMNIDEMO__OMNISTON__API_URL");
   const tonConnectManifestUrl = retrieveEnvVariable(
     "OMNIDEMO__TONCONNECT__MANIFEST_URL",
