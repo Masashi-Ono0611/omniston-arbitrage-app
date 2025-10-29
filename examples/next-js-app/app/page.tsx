@@ -5,7 +5,6 @@ import { Settings } from "lucide-react";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { MultiSwapActions } from "@/components/MultiSwapActions";
 import { MultiSwapBatchExecute } from "@/components/MultiSwapBatchExecute";
-import { MultiSwapExecute } from "@/components/MultiSwapExecute";
 import { MultiSwapForm } from "@/components/MultiSwapForm";
 import { MultiSwapQuotePreview } from "@/components/MultiSwapQuotePreview";
 import { SwapSettings } from "@/components/SwapSettings";
@@ -32,7 +31,6 @@ export default function Home() {
       <MultiSwapActions />
       <MultiSwapQuotePreview />
       <MultiSwapBatchExecute />
-      <MultiSwapExecute />
     </section>
   );
 }

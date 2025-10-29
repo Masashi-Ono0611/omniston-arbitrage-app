@@ -6,7 +6,6 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { useBatchExecute } from "@/hooks/useBatchExecute";
 import { bigNumberToFloat } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
@@ -16,7 +15,7 @@ const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
 
 /**
  * Component for batch executing all swaps in a single transaction
- * Inspired by TxQuotesView "Accept All (Batch)" button pattern
+ * QueryID is auto-generated for tracking and debugging
  */
 export const MultiSwapBatchExecute = () => {
   const { swaps } = useMultiSwap();
@@ -26,20 +25,17 @@ export const MultiSwapBatchExecute = () => {
   const { executeBatch, isExecuting } = useBatchExecute();
 
   const [isExecuted, setIsExecuted] = useState(false);
-  const [fixedQueryIdInput, setFixedQueryIdInput] = useState("");
 
   const swapsWithQuotes = swaps.filter(
     (swap) => swap.quote !== null && swap.status === "success",
   );
-
-  const canBatchExecute = swapsWithQuotes.length > 0 && wallet;
 
   if (swapsWithQuotes.length === 0) {
     return null;
   }
 
   const handleBatchExecute = async () => {
-    await executeBatch(swapsWithQuotes, fixedQueryIdInput.trim() || undefined);
+    await executeBatch(swapsWithQuotes);
     setIsExecuted(true);
 
     // Reset all swap quotes after successful execution
@@ -50,6 +46,11 @@ export const MultiSwapBatchExecute = () => {
 
   // Calculate total bid amount for summary
   const bidAsset = getAssetByAddress(TON_ADDRESS);
+
+  if (!bidAsset) {
+    return null;
+  }
+
   const totalBidAmount = swapsWithQuotes.reduce(
     (sum, swap) => sum + parseFloat(swap.quote!.bidUnits),
     0,
@@ -81,18 +82,16 @@ export const MultiSwapBatchExecute = () => {
               <span className="text-muted-foreground">Total Swaps:</span>
               <span className="font-medium">{swapsWithQuotes.length}</span>
             </div>
-            {bidAsset && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Bid Amount:</span>
-                <span className="font-medium">
-                  {bigNumberToFloat(
-                    totalBidAmount.toString(),
-                    bidAsset.meta.decimals,
-                  )}{" "}
-                  {bidAsset.meta.symbol}
-                </span>
-              </div>
-            )}
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total Bid Amount:</span>
+              <span className="font-medium">
+                {bigNumberToFloat(
+                  totalBidAmount.toString(),
+                  bidAsset.meta.decimals,
+                )}{" "}
+                {bidAsset.meta.symbol}
+              </span>
+            </div>
           </div>
 
           {/* Swap List Preview */}
@@ -126,35 +125,11 @@ export const MultiSwapBatchExecute = () => {
             })}
           </div>
 
-          {/* QueryID Input */}
-          {!isExecuted && (
-            <div className="space-y-2">
-              <label
-                htmlFor="queryId"
-                className="text-sm font-medium text-muted-foreground"
-              >
-                Fixed Query ID (optional)
-              </label>
-              <Input
-                id="queryId"
-                placeholder="Decimal or 0x... (e.g., 12345 or 0x3039)"
-                value={fixedQueryIdInput}
-                onChange={(e) => setFixedQueryIdInput(e.target.value)}
-                disabled={isExecuting}
-                className="h-9"
-              />
-              <p className="text-xs text-muted-foreground">
-                💡 Specify a custom QueryID for all transactions (for debugging
-                or tracking)
-              </p>
-            </div>
-          )}
-
           {/* Execute Button */}
           {!isExecuted && (
             <Button
               onClick={handleBatchExecute}
-              disabled={!canBatchExecute || isExecuting}
+              disabled={!wallet || isExecuting}
               size="lg"
               className="w-full"
             >
@@ -163,20 +138,10 @@ export const MultiSwapBatchExecute = () => {
                   <Loader2 size={16} className="mr-2 animate-spin" />
                   Executing Batch Transaction...
                 </>
-              ) : !wallet ? (
-                "Connect Wallet to Execute"
               ) : (
                 `Execute All ${swapsWithQuotes.length} Swaps (Batch)`
               )}
             </Button>
-          )}
-
-          {/* Warning Message */}
-          {canBatchExecute && !isExecuted && (
-            <p className="text-xs text-muted-foreground text-center">
-              ⚠️ All swaps will be executed in a single transaction. If any swap
-              fails, the entire transaction will be reverted.
-            </p>
           )}
         </div>
       </CardContent>

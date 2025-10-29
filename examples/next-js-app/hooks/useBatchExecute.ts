@@ -3,6 +3,7 @@ import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 import { useCallback, useState } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
+import { useQueryId } from "@/hooks/useQueryId";
 import { modifyQueryId } from "@/lib/payload-utils";
 import type { SwapItem } from "@/providers/multi-swap";
 import { useSwapSettings } from "@/providers/swap-settings";
@@ -16,48 +17,39 @@ export const useBatchExecute = () => {
   const [tonConnect] = useTonConnectUI();
   const omniston = useOmniston();
   const { autoSlippageTolerance } = useSwapSettings();
+  const { getQueryIdAsBigInt } = useQueryId(wallet?.account.address.toString());
 
   const [isExecuting, setIsExecuting] = useState(false);
 
   /**
    * Build and send transaction for all quotes in a single batch
    * @param swaps - Array of swap items with quotes
-   * @param fixedQueryId - Optional fixed QueryID (decimal or 0x... format)
    */
   const executeBatch = useCallback(
-    async (swaps: SwapItem[], fixedQueryId?: string) => {
-      if (!wallet) {
-        throw new Error("Wallet not connected");
-      }
-
+    async (swaps: SwapItem[]) => {
       setIsExecuting(true);
 
       try {
-        // Parse fixedQueryId to bigint if provided
-        let fixedQueryIdBig: bigint | undefined;
-        if (fixedQueryId) {
-          try {
-            fixedQueryIdBig = BigInt(fixedQueryId);
-          } catch {
-            // Invalid input - skip QueryID modification
-            fixedQueryIdBig = undefined;
-          }
-        }
+        // Generate auto QueryID for this batch transaction
+        const autoQueryId = getQueryIdAsBigInt();
+
+        const walletAddress = wallet!.account.address.toString();
+
         // Build all transfers in parallel using Promise.all
         const transactionResponses = await Promise.all(
           swaps.map((swap) =>
             omniston.buildTransfer({
               quote: swap.quote!,
               sourceAddress: {
-                address: wallet.account.address.toString(),
+                address: walletAddress,
                 blockchain: Blockchain.TON,
               },
               destinationAddress: {
-                address: wallet.account.address.toString(),
+                address: walletAddress,
                 blockchain: Blockchain.TON,
               },
               gasExcessAddress: {
-                address: wallet.account.address.toString(),
+                address: walletAddress,
                 blockchain: Blockchain.TON,
               },
               useRecommendedSlippage: autoSlippageTolerance,
@@ -70,14 +62,11 @@ export const useBatchExecute = () => {
           (tx) => tx.ton?.messages ?? [],
         );
 
-        // Apply fixedQueryId to messages if provided
+        // Apply auto-generated QueryID to all messages
         const messagesForSend = allMessages.map((message) => ({
           address: message.targetAddress,
           amount: message.sendAmount,
-          payload:
-            message.payload && fixedQueryIdBig !== undefined
-              ? modifyQueryId(message.payload, fixedQueryIdBig)
-              : message.payload,
+          payload: modifyQueryId(message.payload, autoQueryId),
           stateInit: message.jettonWalletStateInit,
         }));
 
@@ -86,12 +75,10 @@ export const useBatchExecute = () => {
           "[BatchTx] messages.forSend(JSON):",
           JSON.stringify(messagesForSend, null, 2),
         );
-        if (fixedQueryIdBig !== undefined) {
-          console.error(
-            "[BatchTx] Fixed QueryID applied:",
-            fixedQueryIdBig.toString(),
-          );
-        }
+        console.error(
+          "[BatchTx] Auto-generated QueryID applied:",
+          autoQueryId.toString(),
+        );
 
         // Send all messages in a single batch transaction
         await tonConnect.sendTransaction({
@@ -102,7 +89,7 @@ export const useBatchExecute = () => {
         setIsExecuting(false);
       }
     },
-    [wallet, omniston, tonConnect, autoSlippageTolerance],
+    [wallet, omniston, tonConnect, autoSlippageTolerance, getQueryIdAsBigInt],
   );
 
   return {
