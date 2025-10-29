@@ -9,8 +9,6 @@ import {
   useReducer,
 } from "react";
 
-export const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
-
 export type SwapItem = {
   id: string;
   bidAddress: string;
@@ -29,20 +27,20 @@ type MultiSwapState = {
   currentQuotingIndex: number | null;
 };
 
+const createEmptySwap = (): SwapItem => ({
+  id: crypto.randomUUID(),
+  bidAddress: "",
+  askAddress: "",
+  bidAmount: "",
+  slippage: 0.05,
+  quote: null,
+  rfqId: null,
+  status: "idle",
+  error: null,
+});
+
 const initialState: MultiSwapState = {
-  swaps: [
-    {
-      id: crypto.randomUUID(),
-      bidAddress: TON_ADDRESS,
-      askAddress: "",
-      bidAmount: "",
-      slippage: 0.05,
-      quote: null,
-      rfqId: null,
-      status: "idle",
-      error: null,
-    },
-  ],
+  swaps: [createEmptySwap()],
   isQuotingAll: false,
   currentQuotingIndex: null,
 };
@@ -85,20 +83,7 @@ const multiSwapReducer = (
       if (state.swaps.length >= 5) return state;
       return {
         ...state,
-        swaps: [
-          ...state.swaps,
-          {
-            id: crypto.randomUUID(),
-            bidAddress: TON_ADDRESS,
-            askAddress: "",
-            bidAmount: "",
-            slippage: 0.05,
-            quote: null,
-            rfqId: null,
-            status: "idle",
-            error: null,
-          },
-        ],
+        swaps: [...state.swaps, createEmptySwap()],
       };
 
     case "REMOVE_SWAP":

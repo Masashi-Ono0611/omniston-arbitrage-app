@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import type { ChangeEvent } from "react";
+import { useCallback } from "react";
 
 import { AssetSelect } from "@/components/AssetSelect";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import type { AssetMetadata } from "@/models/asset";
 import { useAssets } from "@/providers/assets";
 import {
   type SwapItem,
-  TON_ADDRESS,
   useMultiSwap,
   useMultiSwapDispatch,
 } from "@/providers/multi-swap";
@@ -73,33 +73,24 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
     dispatch({ type: "REMOVE_SWAP", payload: swap.id });
   };
 
-  const handleBidAssetChange = (asset: AssetMetadata | null) => {
-    if (asset) {
-      insertAsset(asset);
-    }
+  const handleAssetChange = useCallback(
+    (type: "bid" | "ask") => (asset: AssetMetadata | null) => {
+      if (asset) {
+        insertAsset(asset);
+      }
 
-    dispatch({
-      type: "UPDATE_SWAP",
-      payload: {
-        id: swap.id,
-        updates: { bidAddress: asset?.contractAddress ?? TON_ADDRESS },
-      },
-    });
-  };
-
-  const handleAskAssetChange = (asset: AssetMetadata | null) => {
-    if (asset) {
-      insertAsset(asset);
-    }
-
-    dispatch({
-      type: "UPDATE_SWAP",
-      payload: {
-        id: swap.id,
-        updates: { askAddress: asset?.contractAddress ?? "" },
-      },
-    });
-  };
+      dispatch({
+        type: "UPDATE_SWAP",
+        payload: {
+          id: swap.id,
+          updates: {
+            [`${type}Address`]: asset?.contractAddress ?? "",
+          },
+        },
+      });
+    },
+    [swap.id, dispatch, insertAsset],
+  );
 
   const handleBidAmountChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -152,7 +143,7 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
               <AssetSelect
                 assets={availableBidAssets}
                 selectedAsset={bidAsset ?? null}
-                onAssetSelect={handleBidAssetChange}
+                onAssetSelect={handleAssetChange("bid")}
                 loading={assetsQuery.isLoading}
               />
             </div>
@@ -175,7 +166,7 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
               <AssetSelect
                 assets={availableAskAssets}
                 selectedAsset={askAsset ?? null}
-                onAssetSelect={handleAskAssetChange}
+                onAssetSelect={handleAssetChange("ask")}
                 loading={assetsQuery.isLoading}
               />
             </div>

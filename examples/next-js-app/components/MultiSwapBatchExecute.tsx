@@ -11,8 +11,6 @@ import { bigNumberToFloat } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import { useMultiSwap, useMultiSwapDispatch } from "@/providers/multi-swap";
 
-const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
-
 /**
  * Component for batch executing all swaps in a single transaction
  * QueryID is auto-generated for tracking and debugging
@@ -39,13 +37,14 @@ export const MultiSwapBatchExecute = () => {
     setIsExecuted(true);
 
     // Reset all swap quotes after successful execution
-    swapsWithQuotes.forEach((swap) =>
-      dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id }),
-    );
+    for (const swap of swapsWithQuotes) {
+      dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id });
+    }
   };
 
-  // Calculate total bid amount for summary
-  const bidAsset = getAssetByAddress(TON_ADDRESS);
+  // Get bid asset from first swap for display
+  const firstBidAddress = swapsWithQuotes[0]?.bidAddress;
+  const bidAsset = firstBidAddress ? getAssetByAddress(firstBidAddress) : null;
 
   if (!bidAsset) {
     return null;
@@ -97,8 +96,10 @@ export const MultiSwapBatchExecute = () => {
           {/* Swap List Preview */}
           <div className="space-y-2">
             {swapsWithQuotes.map((swap, index) => {
+              const swapBidAsset = getAssetByAddress(swap.bidAddress);
               const askAsset = getAssetByAddress(swap.askAddress);
-              if (!bidAsset || !askAsset) return null;
+
+              if (!swapBidAsset || !askAsset) return null;
 
               return (
                 <div
@@ -111,9 +112,9 @@ export const MultiSwapBatchExecute = () => {
                   <span className="flex-1 truncate">
                     {bigNumberToFloat(
                       swap.quote!.bidUnits,
-                      bidAsset.meta.decimals,
+                      swapBidAsset.meta.decimals,
                     )}{" "}
-                    {bidAsset.meta.symbol} →{" "}
+                    {swapBidAsset.meta.symbol} →{" "}
                     {bigNumberToFloat(
                       swap.quote!.askUnits,
                       askAsset.meta.decimals,
