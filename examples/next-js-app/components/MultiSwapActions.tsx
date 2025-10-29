@@ -31,7 +31,7 @@ export const MultiSwapActions = () => {
         {isQuotingAll ? (
           <>
             <Loader2 size={16} className="mr-2 animate-spin" />
-            Getting Quotes ({(currentQuotingIndex ?? 0) + 1}/{swaps.length})
+            Getting Quotes ({completedSwaps}/{swaps.length})
           </>
         ) : (
           "Get All Quotes"
@@ -50,19 +50,25 @@ export const MultiSwapActions = () => {
         </Button>
       )}
 
-      {/* Progress Info - Sequential with live updates */}
+      {/* Progress Info - Parallel with live updates */}
       {isQuotingAll && (
         <div className="text-sm text-muted-foreground text-center space-y-1">
           <div>
-            Processing Swap {(currentQuotingIndex ?? 0) + 1} of {swaps.length}
-            {loadingSwaps > 0 && " (requesting quote...)"}
+            {loadingSwaps > 0 && (
+              <span>
+                Processing {loadingSwaps} swap{loadingSwaps > 1 ? "s" : ""}
+                in parallel...
+              </span>
+            )}
           </div>
-          {completedSwaps > 0 && (
-            <div className="text-green-600 dark:text-green-400">
-              ✓ {completedSwaps} quote{completedSwaps > 1 ? "s" : ""} received
-              (updating live)
-            </div>
-          )}
+          <div>
+            {completedSwaps > 0 && (
+              <span className="text-green-600 dark:text-green-400">
+                ✓ {completedSwaps} quote{completedSwaps > 1 ? "s" : ""} received
+                (updating live)
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>

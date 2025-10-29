@@ -175,25 +175,22 @@ export const useMultiSwapRfq = () => {
     dispatch({ type: "START_QUOTING_ALL" });
 
     try {
-      // Execute RFQ requests SEQUENTIALLY to avoid server overload
+      // Execute all RFQ requests in parallel
       // But keep subscriptions alive for continuous parallel updates
-      for (let i = 0; i < swaps.length; i++) {
-        if (abortControllerRef.current.signal.aborted) {
-          break;
+      const quotePromises = swaps.map((swap) => {
+        if (abortControllerRef.current?.signal.aborted) {
+          return Promise.reject(new Error("Aborted"));
         }
-
-        const swap = swaps[i];
-        if (!swap) continue;
-
-        dispatch({ type: "SET_CURRENT_QUOTING_INDEX", payload: i });
-
-        try {
-          await getQuoteForSwap(swap);
-        } catch (error) {
+        // Wrap in promise to catch individual errors without failing others
+        return getQuoteForSwap(swap).catch((error) => {
           logger.error(`Failed to get quote for swap ${swap.id}:`, error);
-          // Continue to next swap even if this one fails
-        }
-      }
+          // Return null to indicate failure but don't throw
+          return null;
+        });
+      });
+
+      // Wait for all quotes to complete (success or failure)
+      await Promise.all(quotePromises);
     } catch (error) {
       logger.error("Failed to get all quotes:", error);
     } finally {
