@@ -91,7 +91,6 @@ export const useMultiSwapRfq = () => {
 
         return new Promise((resolve, reject) => {
           let firstQuoteReceived = false;
-          let initialWaitTimeout: NodeJS.Timeout | null = null;
 
           const subscription = observable.subscribe({
             next: (event: QuoteResponseEvent) => {
@@ -110,15 +109,11 @@ export const useMultiSwapRfq = () => {
                   firstQuoteReceived = true;
                   // Store subscription for later cleanup
                   subscriptionsRef.current.set(swap.id, subscription);
-                  // Wait briefly then resolve to move to next swap
-                  // But keep subscription alive for continuous updates
-                  initialWaitTimeout = setTimeout(() => {
-                    resolve();
-                  }, QUOTE_CONFIG.QUOTE_WAIT_FOR_BETTER_MS);
+                  // Resolve immediately after first quote - no waiting
+                  resolve();
                 }
                 // Subscription stays active - quotes will continue to update
               } else if (event.type === "unsubscribed") {
-                if (initialWaitTimeout) clearTimeout(initialWaitTimeout);
                 subscriptionsRef.current.delete(swap.id);
                 subscription.unsubscribe();
                 if (firstQuoteReceived) {
@@ -129,7 +124,6 @@ export const useMultiSwapRfq = () => {
               }
             },
             error: (error: unknown) => {
-              if (initialWaitTimeout) clearTimeout(initialWaitTimeout);
               subscriptionsRef.current.delete(swap.id);
               subscription.unsubscribe();
               reject(error);
@@ -138,7 +132,6 @@ export const useMultiSwapRfq = () => {
 
           if (abortControllerRef.current) {
             abortControllerRef.current.signal.addEventListener("abort", () => {
-              if (initialWaitTimeout) clearTimeout(initialWaitTimeout);
               subscriptionsRef.current.delete(swap.id);
               subscription.unsubscribe();
               reject(new Error("Aborted"));
