@@ -2,7 +2,13 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useIsConnectionRestored, useTonAddress } from "@tonconnect/ui-react";
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { z } from "zod";
 
 import { CACHE_CONFIG, STORAGE_KEYS } from "@/lib/constants";
@@ -64,31 +70,37 @@ export const AssetsProvider = ({ children }: { children: React.ReactNode }) => {
     staleTime: CACHE_CONFIG.ASSETS_STALE_TIME,
   });
 
-  const getAssetByAddress = (address: AssetMetadata["contractAddress"]) =>
-    assetsQuery.data?.get(address);
+  const getAssetByAddress = useCallback(
+    (address: AssetMetadata["contractAddress"]) =>
+      assetsQuery.data?.get(address),
+    [assetsQuery.data],
+  );
 
-  const insertAsset = (asset: AssetMetadata) => {
-    if (getAssetByAddress(asset.contractAddress)) return;
+  const insertAsset = useCallback(
+    (asset: AssetMetadata) => {
+      if (assetsQuery.data?.get(asset.contractAddress)) return;
 
-    setUnconditionalAssets((prev) => [...prev, asset.contractAddress]);
-    queryClient.setQueryData(
-      assetQueryFactory.fetch({
-        unconditionalAssets,
-        walletAddress,
-      }).queryKey,
-      (old: AssetMetadata[] | undefined) => {
-        if (!old) return [asset];
+      setUnconditionalAssets((prev) => [...prev, asset.contractAddress]);
+      queryClient.setQueryData(
+        assetQueryFactory.fetch({
+          unconditionalAssets,
+          walletAddress,
+        }).queryKey,
+        (old: AssetMetadata[] | undefined) => {
+          if (!old) return [asset];
 
-        const exists = old.some(
-          (a) => a.contractAddress === asset.contractAddress,
-        );
+          const exists = old.some(
+            (a) => a.contractAddress === asset.contractAddress,
+          );
 
-        if (exists) return old;
+          if (exists) return old;
 
-        return [...old, asset];
-      },
-    );
-  };
+          return [...old, asset];
+        },
+      );
+    },
+    [assetsQuery.data, queryClient, unconditionalAssets, walletAddress],
+  );
 
   return (
     <AssetsContext.Provider

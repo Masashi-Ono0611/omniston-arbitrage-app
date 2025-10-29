@@ -11,6 +11,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Copy } from "@/components/ui/copy";
+import { isSwapWithQuote } from "@/lib/type-guards";
 import { bigNumberToFloat, trimStringWithEllipsis } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import { useMultiSwap } from "@/providers/multi-swap";
@@ -18,9 +19,7 @@ import { useMultiSwap } from "@/providers/multi-swap";
 export const MultiSwapQuotePreview = () => {
   const { swaps } = useMultiSwap();
 
-  const swapsWithQuotes = swaps.filter(
-    (swap) => swap.quote && swap.status === "success",
-  );
+  const swapsWithQuotes = swaps.filter(isSwapWithQuote);
 
   if (swapsWithQuotes.length === 0) {
     return null;
@@ -32,8 +31,8 @@ export const MultiSwapQuotePreview = () => {
       {swapsWithQuotes.map((swap, index) => (
         <QuotePreviewCard
           key={swap.id}
-          quote={swap.quote!}
-          rfqId={swap.rfqId!}
+          quote={swap.quote}
+          rfqId={swap.rfqId}
           index={index}
         />
       ))}

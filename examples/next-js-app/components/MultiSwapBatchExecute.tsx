@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useBatchExecute } from "@/hooks/useBatchExecute";
+import { isSwapWithQuote } from "@/lib/type-guards";
 import { bigNumberToFloat } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import { useMultiSwap, useMultiSwapDispatch } from "@/providers/multi-swap";
@@ -24,9 +25,7 @@ export const MultiSwapBatchExecute = () => {
 
   const [isExecuted, setIsExecuted] = useState(false);
 
-  const swapsWithQuotes = swaps.filter(
-    (swap) => swap.quote !== null && swap.status === "success",
-  );
+  const swapsWithQuotes = swaps.filter(isSwapWithQuote);
 
   if (swapsWithQuotes.length === 0) {
     return null;
@@ -51,7 +50,7 @@ export const MultiSwapBatchExecute = () => {
   }
 
   const totalBidAmount = swapsWithQuotes.reduce(
-    (sum, swap) => sum + parseFloat(swap.quote!.bidUnits),
+    (sum, swap) => sum + parseFloat(swap.quote.bidUnits),
     0,
   );
 
@@ -111,12 +110,12 @@ export const MultiSwapBatchExecute = () => {
                   </div>
                   <span className="flex-1 truncate">
                     {bigNumberToFloat(
-                      swap.quote!.bidUnits,
+                      swap.quote.bidUnits,
                       swapBidAsset.meta.decimals,
                     )}{" "}
                     {swapBidAsset.meta.symbol} →{" "}
                     {bigNumberToFloat(
-                      swap.quote!.askUnits,
+                      swap.quote.askUnits,
                       askAsset.meta.decimals,
                     )}{" "}
                     {askAsset.meta.symbol}
