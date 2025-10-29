@@ -18,12 +18,19 @@ import {
   useMultiSwap,
   useMultiSwapDispatch,
 } from "@/providers/multi-swap";
+import { useSwapSettings } from "@/providers/swap-settings";
 
 export const useMultiSwapRfq = () => {
   const omniston = useOmniston();
   const { swaps, isQuotingAll } = useMultiSwap();
   const dispatch = useMultiSwapDispatch();
   const { getAssetByAddress } = useAssets();
+  const {
+    settlementMethods,
+    referrerAddress,
+    referrerFeeBps,
+    flexibleReferrerFee,
+  } = useSwapSettings();
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const getQuoteForSwap = useCallback(
@@ -40,7 +47,7 @@ export const useMultiSwapRfq = () => {
       }
 
       const quoteRequest: QuoteRequest = {
-        settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
+        settlementMethods: settlementMethods,
         askAssetAddress: {
           address: swap.askAddress,
           blockchain: Blockchain.TON,
@@ -56,11 +63,18 @@ export const useMultiSwapRfq = () => {
           ).toString(),
           askUnits: undefined,
         },
+        referrerAddress: referrerAddress
+          ? {
+              address: referrerAddress,
+              blockchain: Blockchain.TON,
+            }
+          : undefined,
+        referrerFeeBps: referrerFeeBps,
         settlementParams: {
           maxPriceSlippageBps: percentToPercentBps(swap.slippage),
           maxOutgoingMessages: SWAP_CONFIG.MAX_OUTGOING_MESSAGES,
           gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
-          flexibleReferrerFee: false,
+          flexibleReferrerFee: flexibleReferrerFee,
         },
       };
 
@@ -119,7 +133,15 @@ export const useMultiSwapRfq = () => {
         throw error;
       }
     },
-    [omniston, dispatch, getAssetByAddress],
+    [
+      omniston,
+      dispatch,
+      getAssetByAddress,
+      settlementMethods,
+      referrerAddress,
+      referrerFeeBps,
+      flexibleReferrerFee,
+    ],
   );
 
   const getAllQuotes = useCallback(async () => {
