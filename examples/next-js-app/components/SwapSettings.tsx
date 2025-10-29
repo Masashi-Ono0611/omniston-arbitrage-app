@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  DEFAULT_SLIPPAGE_TOLERANCE,
   SettlementMethod,
   useSwapSettings,
 } from "@/providers/swap-settings";
@@ -35,7 +34,6 @@ export function SwapSettings({
         <DialogHeader>
           <DialogTitle>Swap Settings</DialogTitle>
         </DialogHeader>
-        <SlippageToleranceSection />
         <ReferrerSection />
         <SettlementMethodsSection />
         <FlexibleReferrerFeeSection />
@@ -43,76 +41,6 @@ export function SwapSettings({
     </Dialog>
   );
 }
-
-const transformValue = (value: number) => value * 100;
-const transformValueBack = (value: number) => value / 100;
-
-const SlippageToleranceSection = () => {
-  const {
-    slippageTolerance,
-    setSlippageTolerance,
-    autoSlippageTolerance,
-    setAutoSlippageTolerance,
-  } = useSwapSettings();
-
-  const inputId = useId();
-
-  const slippageToleranceValue = transformValue(slippageTolerance);
-
-  return (
-    <section className="flex space-x-2 items-end">
-      <div className="grid items-center gap-1.5 w-full">
-        <Label htmlFor={inputId}>Slippage Tolerance</Label>
-        {autoSlippageTolerance ? (
-          <Input id={inputId} type="text" value="Auto" disabled />
-        ) : (
-          <Input
-            id={inputId}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={100}
-            value={
-              Number.isNaN(slippageToleranceValue)
-                ? undefined
-                : slippageToleranceValue
-            }
-            onChange={(e) =>
-              setSlippageTolerance(
-                transformValueBack(Number.parseFloat(e.target.value)),
-              )
-            }
-          />
-        )}
-      </div>
-      {[0.01, 0.05, 0.1].map((value) => (
-        <Button
-          key={value}
-          variant={
-            !autoSlippageTolerance && value === slippageTolerance
-              ? "default"
-              : "secondary"
-          }
-          onClick={() => {
-            setAutoSlippageTolerance(false);
-            setSlippageTolerance(value);
-          }}
-        >
-          {transformValue(value)}%
-        </Button>
-      ))}
-      <Button
-        variant={autoSlippageTolerance ? "default" : "secondary"}
-        onClick={() => {
-          setAutoSlippageTolerance(true);
-          setSlippageTolerance(DEFAULT_SLIPPAGE_TOLERANCE);
-        }}
-      >
-        Auto
-      </Button>
-    </section>
-  );
-};
 
 const ReferrerSection = () => {
   const {
