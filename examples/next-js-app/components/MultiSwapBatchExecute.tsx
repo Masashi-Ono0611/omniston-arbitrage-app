@@ -41,55 +41,18 @@ export const MultiSwapBatchExecute = () => {
     }
   };
 
-  // Get bid asset from first swap for display
-  const firstBidAddress = swapsWithQuotes[0]?.bidAddress;
-  const bidAsset = firstBidAddress ? getAssetByAddress(firstBidAddress) : null;
-
-  if (!bidAsset) {
-    return null;
-  }
-
-  const totalBidAmount = swapsWithQuotes.reduce(
-    (sum, swap) => sum + parseFloat(swap.quote.bidUnits),
-    0,
-  );
-
   return (
     <Card>
       <CardContent className="p-6">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium">Batch Execute All Swaps</h3>
-              <p className="text-sm text-muted-foreground">
-                Execute {swapsWithQuotes.length} swap
-                {swapsWithQuotes.length > 1 ? "s" : ""} in one transaction
-              </p>
-            </div>
+            <h3 className="text-lg font-medium">Batch Execute All Swaps</h3>
             {isExecuted && (
               <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle2 size={20} />
                 <span className="font-medium">Executed</span>
               </div>
             )}
-          </div>
-
-          {/* Summary */}
-          <div className="p-4 bg-secondary/50 rounded-md space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total Swaps:</span>
-              <span className="font-medium">{swapsWithQuotes.length}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total Bid Amount:</span>
-              <span className="font-medium">
-                {bigNumberToFloat(
-                  totalBidAmount.toString(),
-                  bidAsset.meta.decimals,
-                )}{" "}
-                {bidAsset.meta.symbol}
-              </span>
-            </div>
           </div>
 
           {/* Swap List Preview */}
