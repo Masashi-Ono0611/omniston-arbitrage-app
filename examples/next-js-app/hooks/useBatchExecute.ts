@@ -30,28 +30,22 @@ export const useBatchExecute = () => {
         throw new Error("Wallet not connected");
       }
 
-      const swapsWithQuotes = swaps.filter((swap) => swap.quote !== null);
-
-      if (swapsWithQuotes.length === 0) {
-        throw new Error("No quotes available to execute");
-      }
-
       setIsExecuting(true);
 
       try {
-        // Normalize fixedQueryId to bigint
-        const rawFq = fixedQueryId?.trim?.() ?? "";
-        let fixedQueryIdBig: bigint | undefined = undefined;
-        if (rawFq.length > 0) {
+        // Parse fixedQueryId to bigint if provided
+        let fixedQueryIdBig: bigint | undefined;
+        if (fixedQueryId) {
           try {
-            fixedQueryIdBig = BigInt(rawFq);
+            fixedQueryIdBig = BigInt(fixedQueryId);
           } catch {
+            // Invalid input - skip QueryID modification
             fixedQueryIdBig = undefined;
           }
         }
         // Build all transfers in parallel using Promise.all
         const transactionResponses = await Promise.all(
-          swapsWithQuotes.map((swap) =>
+          swaps.map((swap) =>
             omniston.buildTransfer({
               quote: swap.quote!,
               sourceAddress: {
@@ -71,16 +65,12 @@ export const useBatchExecute = () => {
           ),
         );
 
-        // Flatten all messages from all transactions into a single array
+        // Flatten all messages from all transactions
         const allMessages = transactionResponses.flatMap(
           (tx) => tx.ton?.messages ?? [],
         );
 
-        if (allMessages.length === 0) {
-          throw new Error("No messages generated from quotes");
-        }
-
-        // Apply fixedQueryId to messages and prepare for sending
+        // Apply fixedQueryId to messages if provided
         const messagesForSend = allMessages.map((message) => ({
           address: message.targetAddress,
           amount: message.sendAmount,

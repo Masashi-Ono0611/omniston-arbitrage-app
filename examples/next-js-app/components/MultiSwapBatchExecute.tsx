@@ -39,24 +39,21 @@ export const MultiSwapBatchExecute = () => {
   }
 
   const handleBatchExecute = async () => {
-    const queryId = fixedQueryIdInput.trim();
-    await executeBatch(
-      swapsWithQuotes,
-      queryId.length > 0 ? queryId : undefined,
-    );
+    await executeBatch(swapsWithQuotes, fixedQueryIdInput.trim() || undefined);
     setIsExecuted(true);
 
     // Reset all swap quotes after successful execution
-    for (const swap of swapsWithQuotes) {
-      dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id });
-    }
+    swapsWithQuotes.forEach((swap) =>
+      dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id }),
+    );
   };
 
-  // Calculate totals for preview
+  // Calculate total bid amount for summary
   const bidAsset = getAssetByAddress(TON_ADDRESS);
-  const totalBidAmount = swapsWithQuotes.reduce((sum, swap) => {
-    return sum + parseFloat(swap.quote!.bidUnits);
-  }, 0);
+  const totalBidAmount = swapsWithQuotes.reduce(
+    (sum, swap) => sum + parseFloat(swap.quote!.bidUnits),
+    0,
+  );
 
   return (
     <Card>
