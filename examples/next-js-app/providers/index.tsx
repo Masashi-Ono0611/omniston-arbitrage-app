@@ -7,9 +7,7 @@ import React, { useRef } from "react";
 
 import { AssetsProvider } from "./assets";
 import { MultiSwapProvider } from "./multi-swap";
-import { SwapFormProvider } from "./swap-form";
 import { SwapSettingsProvider } from "./swap-settings";
-import { TrackingQuoteProvider } from "./tracking-quote";
 
 const queryClient = new QueryClient();
 
@@ -41,11 +39,7 @@ export function Providers({
         <AssetsProvider>
           <OmnistonProvider omniston={omniston.current}>
             <SwapSettingsProvider>
-              <SwapFormProvider>
-                <MultiSwapProvider>
-                  <TrackingQuoteProvider>{children}</TrackingQuoteProvider>
-                </MultiSwapProvider>
-              </SwapFormProvider>
+              <MultiSwapProvider>{children}</MultiSwapProvider>
             </SwapSettingsProvider>
           </OmnistonProvider>
         </AssetsProvider>
