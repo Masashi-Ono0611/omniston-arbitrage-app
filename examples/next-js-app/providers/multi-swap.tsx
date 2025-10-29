@@ -9,6 +9,8 @@ import {
   useReducer,
 } from "react";
 
+import { SWAP_CONFIG } from "@/lib/constants";
+
 export type SwapItem = {
   id: string;
   bidAddress: string;
@@ -80,7 +82,7 @@ const multiSwapReducer = (
 ): MultiSwapState => {
   switch (action.type) {
     case "ADD_SWAP":
-      if (state.swaps.length >= 5) return state;
+      if (state.swaps.length >= SWAP_CONFIG.MAX_SWAPS) return state;
       return {
         ...state,
         swaps: [...state.swaps, createEmptySwap()],

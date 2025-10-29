@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
 import { useQueryId } from "@/hooks/useQueryId";
+import { SWAP_CONFIG } from "@/lib/constants";
 import { modifyQueryId } from "@/lib/payload-utils";
 import type { SwapItem } from "@/providers/multi-swap";
 import { useSwapSettings } from "@/providers/swap-settings";
@@ -82,7 +83,9 @@ export const useBatchExecute = () => {
 
         // Send all messages in a single batch transaction
         await tonConnect.sendTransaction({
-          validUntil: Math.floor(Date.now() / 1000) + 5 * 60,
+          validUntil:
+            Math.floor(Date.now() / 1000) +
+            SWAP_CONFIG.TRANSACTION_VALID_DURATION_SECONDS,
           messages: messagesForSend,
         });
       } finally {

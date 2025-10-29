@@ -4,10 +4,10 @@ import { SettlementMethod as AllSettlementMethods } from "@ston-fi/omniston-sdk-
 import React, { createContext, useContext, useEffect, useReducer } from "react";
 import { z } from "zod";
 
+import { STORAGE_KEYS } from "@/lib/constants";
+
 export const DEFAULT_SLIPPAGE_TOLERANCE = 0.05;
 export const DEFAULT_AUTO_SLIPPAGE_TOLERANCE = false;
-
-const SETTINGS_STORAGE_KEY = "swapSettings";
 
 export const SettlementMethod = {
   Swap: AllSettlementMethods.SETTLEMENT_METHOD_SWAP,
@@ -115,7 +115,7 @@ export const SwapSettingsProvider = ({
   };
 
   useEffect(() => {
-    const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    const storedSettings = localStorage.getItem(STORAGE_KEYS.SWAP_SETTINGS);
 
     if (!storedSettings) return;
 
@@ -126,7 +126,7 @@ export const SwapSettingsProvider = ({
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEYS.SWAP_SETTINGS, JSON.stringify(state));
   }, [state]);
 
   return (

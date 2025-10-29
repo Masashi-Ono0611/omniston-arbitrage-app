@@ -8,6 +8,7 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
+import { RETRY_CONFIG, SWAP_CONFIG } from "@/lib/constants";
 import { floatToBigNumber, percentToPercentBps } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import {
@@ -15,9 +16,6 @@ import {
   useMultiSwap,
   useMultiSwapDispatch,
 } from "@/providers/multi-swap";
-
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 2000;
 
 export const useMultiSwapRfq = () => {
   const omniston = useOmniston();
@@ -58,7 +56,7 @@ export const useMultiSwapRfq = () => {
         },
         settlementParams: {
           maxPriceSlippageBps: percentToPercentBps(swap.slippage),
-          maxOutgoingMessages: 4,
+          maxOutgoingMessages: SWAP_CONFIG.MAX_OUTGOING_MESSAGES,
           gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
           flexibleReferrerFee: false,
         },
@@ -105,8 +103,10 @@ export const useMultiSwapRfq = () => {
           }
         });
       } catch (error) {
-        if (retryCount < MAX_RETRY_ATTEMPTS) {
-          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        if (retryCount < RETRY_CONFIG.MAX_ATTEMPTS) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, RETRY_CONFIG.DELAY_MS),
+          );
           return getQuoteForSwap(swap, retryCount + 1);
         }
 

@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SWAP_CONFIG } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { validateFloatValue } from "@/lib/validators";
 import type { AssetMetadata } from "@/models/asset";
 import { useAssets } from "@/providers/assets";
 import {
@@ -17,9 +19,6 @@ import {
   useMultiSwap,
   useMultiSwapDispatch,
 } from "@/providers/multi-swap";
-
-const validateFloatValue = (value: string): boolean =>
-  /^([0-9]+([.][0-9]*)?|[.][0-9]+)$/.test(value);
 
 export const MultiSwapForm = () => {
   const { swaps } = useMultiSwap();
@@ -35,12 +34,12 @@ export const MultiSwapForm = () => {
         <h2 className="text-lg font-medium">Multi Swap Configuration</h2>
         <Button
           onClick={handleAddSwap}
-          disabled={swaps.length >= 5}
+          disabled={swaps.length >= SWAP_CONFIG.MAX_SWAPS}
           variant="outline"
           size="sm"
         >
           <Plus size={16} className="mr-1" />
-          Add Swap ({swaps.length}/5)
+          Add Swap ({swaps.length}/{SWAP_CONFIG.MAX_SWAPS})
         </Button>
       </div>
 
