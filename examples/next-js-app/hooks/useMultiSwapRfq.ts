@@ -5,7 +5,7 @@ import {
   type QuoteResponseEvent,
   SettlementMethod,
 } from "@ston-fi/omniston-sdk-react";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
 import { QUOTE_CONFIG, RETRY_CONFIG, SWAP_CONFIG } from "@/lib/constants";
@@ -32,6 +32,9 @@ export const useMultiSwapRfq = () => {
     flexibleReferrerFee,
   } = useSwapSettings();
   const abortControllerRef = useRef<AbortController | null>(null);
+  const subscriptionsRef = useRef<Map<string, { unsubscribe: () => void }>>(
+    new Map(),
+  );
 
   const getQuoteForSwap = useCallback(
     async (swap: SwapItem, retryCount = 0): Promise<void> => {
@@ -88,13 +91,7 @@ export const useMultiSwapRfq = () => {
 
         return new Promise((resolve, reject) => {
           let firstQuoteReceived = false;
-          let waitTimeout: NodeJS.Timeout | null = null;
-          let absoluteTimeout: NodeJS.Timeout | null = null;
-
-          const cleanup = () => {
-            if (waitTimeout) clearTimeout(waitTimeout);
-            if (absoluteTimeout) clearTimeout(absoluteTimeout);
-          };
+          let initialWaitTimeout: NodeJS.Timeout | null = null;
 
           const subscription = observable.subscribe({
             next: (event: QuoteResponseEvent) => {
@@ -111,16 +108,18 @@ export const useMultiSwapRfq = () => {
 
                 if (!firstQuoteReceived) {
                   firstQuoteReceived = true;
-                  // Wait for potentially better quotes
-                  waitTimeout = setTimeout(() => {
-                    cleanup();
-                    subscription.unsubscribe();
+                  // Store subscription for later cleanup
+                  subscriptionsRef.current.set(swap.id, subscription);
+                  // Wait briefly then resolve to move to next swap
+                  // But keep subscription alive for continuous updates
+                  initialWaitTimeout = setTimeout(() => {
                     resolve();
                   }, QUOTE_CONFIG.QUOTE_WAIT_FOR_BETTER_MS);
                 }
-                // If additional quotes come in, they automatically update via dispatch
+                // Subscription stays active - quotes will continue to update
               } else if (event.type === "unsubscribed") {
-                cleanup();
+                if (initialWaitTimeout) clearTimeout(initialWaitTimeout);
+                subscriptionsRef.current.delete(swap.id);
                 subscription.unsubscribe();
                 if (firstQuoteReceived) {
                   resolve();
@@ -130,26 +129,17 @@ export const useMultiSwapRfq = () => {
               }
             },
             error: (error: unknown) => {
-              cleanup();
+              if (initialWaitTimeout) clearTimeout(initialWaitTimeout);
+              subscriptionsRef.current.delete(swap.id);
               subscription.unsubscribe();
               reject(error);
             },
           });
 
-          // Absolute timeout to prevent hanging indefinitely
-          absoluteTimeout = setTimeout(() => {
-            cleanup();
-            subscription.unsubscribe();
-            if (firstQuoteReceived) {
-              resolve();
-            } else {
-              reject(new Error("Quote request absolute timeout"));
-            }
-          }, QUOTE_CONFIG.QUOTE_TIMEOUT_MS);
-
           if (abortControllerRef.current) {
             abortControllerRef.current.signal.addEventListener("abort", () => {
-              cleanup();
+              if (initialWaitTimeout) clearTimeout(initialWaitTimeout);
+              subscriptionsRef.current.delete(swap.id);
               subscription.unsubscribe();
               reject(new Error("Aborted"));
             });
@@ -184,25 +174,33 @@ export const useMultiSwapRfq = () => {
   const getAllQuotes = useCallback(async () => {
     if (isQuotingAll) return;
 
+    // Clean up any existing subscriptions first
+    subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
+    subscriptionsRef.current.clear();
+
     abortControllerRef.current = new AbortController();
     dispatch({ type: "START_QUOTING_ALL" });
 
     try {
-      // Execute all RFQ requests in parallel
-      const quotePromises = swaps.map((swap) => {
-        if (abortControllerRef.current?.signal.aborted) {
-          return Promise.reject(new Error("Aborted"));
+      // Execute RFQ requests SEQUENTIALLY to avoid server overload
+      // But keep subscriptions alive for continuous parallel updates
+      for (let i = 0; i < swaps.length; i++) {
+        if (abortControllerRef.current.signal.aborted) {
+          break;
         }
-        // Wrap in promise to catch individual errors without failing others
-        return getQuoteForSwap(swap).catch((error) => {
-          logger.error(`Failed to get quote for swap ${swap.id}:`, error);
-          // Return null to indicate failure but don't throw
-          return null;
-        });
-      });
 
-      // Wait for all quotes to complete (success or failure)
-      await Promise.all(quotePromises);
+        const swap = swaps[i];
+        if (!swap) continue;
+
+        dispatch({ type: "SET_CURRENT_QUOTING_INDEX", payload: i });
+
+        try {
+          await getQuoteForSwap(swap);
+        } catch (error) {
+          logger.error(`Failed to get quote for swap ${swap.id}:`, error);
+          // Continue to next swap even if this one fails
+        }
+      }
     } catch (error) {
       logger.error("Failed to get all quotes:", error);
     } finally {
@@ -217,9 +215,22 @@ export const useMultiSwapRfq = () => {
     }
   }, []);
 
+  const cleanupSubscriptions = useCallback(() => {
+    subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
+    subscriptionsRef.current.clear();
+  }, []);
+
+  // Cleanup subscriptions on unmount
+  useEffect(() => {
+    return () => {
+      cleanupSubscriptions();
+    };
+  }, [cleanupSubscriptions]);
+
   return {
     getAllQuotes,
     cancelQuoting,
+    cleanupSubscriptions,
     isQuotingAll,
   };
 };
