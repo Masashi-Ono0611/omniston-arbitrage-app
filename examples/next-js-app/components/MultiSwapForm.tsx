@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SWAP_CONFIG } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, decimalToPercent, percentToDecimal } from "@/lib/utils";
 import { validateFloatValue } from "@/lib/validators";
 import type { AssetMetadata } from "@/models/asset";
 import { useAssets } from "@/providers/assets";
@@ -105,7 +105,7 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
     const value = e.target.value;
     if (value && !validateFloatValue(value)) return;
 
-    const slippage = parseFloat(value) / 100;
+    const slippage = percentToDecimal(value);
     if (slippage >= 0 && slippage <= 1) {
       dispatch({
         type: "UPDATE_SWAP",
@@ -178,7 +178,7 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
               <Input
                 type="text"
                 placeholder="5.0"
-                value={(swap.slippage * 100).toString()}
+                value={decimalToPercent(swap.slippage)}
                 onChange={handleSlippageChange}
                 disabled={swap.status === "loading"}
               />

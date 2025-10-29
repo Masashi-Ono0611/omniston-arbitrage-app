@@ -83,3 +83,17 @@ export function retrieveEnvVariable(key: string, defaultValue?: string) {
 
   return value;
 }
+
+/**
+ * Converts decimal slippage value to percentage string for display
+ * @example decimalToPercent(0.05) => "5"
+ */
+export const decimalToPercent = (decimal: number): string =>
+  (decimal * 100).toString();
+
+/**
+ * Converts percentage string to decimal slippage value
+ * @example percentToDecimal("5") => 0.05
+ */
+export const percentToDecimal = (percent: string): number =>
+  parseFloat(percent) / 100;

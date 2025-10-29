@@ -27,6 +27,15 @@ export function Providers({
     }),
   );
 
+  /**
+   * Provider hierarchy (inner to outer):
+   * 1. QueryClient - React Query for data fetching
+   * 2. TonConnect - Wallet connection (provides wallet address)
+   * 3. Assets - Requires wallet address from TonConnect
+   * 4. Omniston - SDK initialization (uses assets data)
+   * 5. SwapSettings - Independent settings management
+   * 6. MultiSwap - Uses assets and settings for swap state
+   */
   return (
     <QueryClientProvider client={queryClient}>
       <TonConnectUIProvider
