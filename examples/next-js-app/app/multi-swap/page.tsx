@@ -6,6 +6,7 @@ import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { MultiSwapActions } from "@/components/MultiSwapActions";
 import { MultiSwapExecute } from "@/components/MultiSwapExecute";
 import { MultiSwapForm } from "@/components/MultiSwapForm";
+import { MultiSwapQuotePreview } from "@/components/MultiSwapQuotePreview";
 import { SwapSettings } from "@/components/SwapSettings";
 import { Button } from "@/components/ui/button";
 
@@ -28,6 +29,7 @@ export default function MultiSwapPage() {
 
       <MultiSwapForm />
       <MultiSwapActions />
+      <MultiSwapQuotePreview />
       <MultiSwapExecute />
     </section>
   );
