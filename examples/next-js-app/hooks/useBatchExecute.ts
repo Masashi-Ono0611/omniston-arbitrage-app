@@ -17,7 +17,6 @@ export const useBatchExecute = () => {
   const { autoSlippageTolerance } = useSwapSettings();
 
   const [isExecuting, setIsExecuting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   /**
    * Build and send transaction for all quotes in a single batch
@@ -35,30 +34,29 @@ export const useBatchExecute = () => {
       }
 
       setIsExecuting(true);
-      setError(null);
 
       try {
         // Build all transfers in parallel using Promise.all
-        const buildTransferPromises = swapsWithQuotes.map((swap) =>
-          omniston.buildTransfer({
-            quote: swap.quote!,
-            sourceAddress: {
-              address: wallet.account.address.toString(),
-              blockchain: Blockchain.TON,
-            },
-            destinationAddress: {
-              address: wallet.account.address.toString(),
-              blockchain: Blockchain.TON,
-            },
-            gasExcessAddress: {
-              address: wallet.account.address.toString(),
-              blockchain: Blockchain.TON,
-            },
-            useRecommendedSlippage: autoSlippageTolerance,
-          }),
+        const transactionResponses = await Promise.all(
+          swapsWithQuotes.map((swap) =>
+            omniston.buildTransfer({
+              quote: swap.quote!,
+              sourceAddress: {
+                address: wallet.account.address.toString(),
+                blockchain: Blockchain.TON,
+              },
+              destinationAddress: {
+                address: wallet.account.address.toString(),
+                blockchain: Blockchain.TON,
+              },
+              gasExcessAddress: {
+                address: wallet.account.address.toString(),
+                blockchain: Blockchain.TON,
+              },
+              useRecommendedSlippage: autoSlippageTolerance,
+            }),
+          ),
         );
-
-        const transactionResponses = await Promise.all(buildTransferPromises);
 
         // Flatten all messages from all transactions into a single array
         const allMessages = transactionResponses.flatMap(
@@ -79,13 +77,6 @@ export const useBatchExecute = () => {
             stateInit: message.jettonWalletStateInit,
           })),
         });
-
-        return { success: true, messagesCount: allMessages.length };
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Unknown error occurred";
-        setError(errorMessage);
-        throw err;
       } finally {
         setIsExecuting(false);
       }
@@ -96,6 +87,5 @@ export const useBatchExecute = () => {
   return {
     executeBatch,
     isExecuting,
-    error,
   };
 };

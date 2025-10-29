@@ -37,16 +37,12 @@ export const MultiSwapBatchExecute = () => {
   }
 
   const handleBatchExecute = async () => {
-    try {
-      await executeBatch(swapsWithQuotes);
-      setIsExecuted(true);
+    await executeBatch(swapsWithQuotes);
+    setIsExecuted(true);
 
-      // Reset all swap quotes after successful execution
-      for (const swap of swapsWithQuotes) {
-        dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id });
-      }
-    } catch (error) {
-      console.error("Batch execution failed:", error);
+    // Reset all swap quotes after successful execution
+    for (const swap of swapsWithQuotes) {
+      dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id });
     }
   };
 
