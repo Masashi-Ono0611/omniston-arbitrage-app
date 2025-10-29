@@ -29,7 +29,6 @@ export type SwapItem = {
 type MultiSwapState = {
   swaps: SwapItem[];
   isQuotingAll: boolean;
-  currentQuotingIndex: number | null;
 };
 
 const createEmptySwap = (): SwapItem => ({
@@ -48,7 +47,6 @@ const createEmptySwap = (): SwapItem => ({
 const initialState: MultiSwapState = {
   swaps: [createEmptySwap()],
   isQuotingAll: false,
-  currentQuotingIndex: null,
 };
 
 type MultiSwapAction =
@@ -71,7 +69,6 @@ type MultiSwapAction =
       };
     }
   | { type: "START_QUOTING_ALL" }
-  | { type: "SET_CURRENT_QUOTING_INDEX"; payload: number | null }
   | { type: "FINISH_QUOTING_ALL" }
   | { type: "RESET_SWAP_QUOTE"; payload: string };
 
@@ -143,7 +140,6 @@ const multiSwapReducer = (
       return {
         ...state,
         isQuotingAll: true,
-        currentQuotingIndex: 0,
         swaps: state.swaps.map((swap) => ({
           ...swap,
           status: "idle",
@@ -153,17 +149,10 @@ const multiSwapReducer = (
         })),
       };
 
-    case "SET_CURRENT_QUOTING_INDEX":
-      return {
-        ...state,
-        currentQuotingIndex: action.payload,
-      };
-
     case "FINISH_QUOTING_ALL":
       return {
         ...state,
         isQuotingAll: false,
-        currentQuotingIndex: null,
       };
 
     case "RESET_SWAP_QUOTE":

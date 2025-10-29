@@ -8,7 +8,7 @@ import {
 import { useCallback, useRef } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
-import { RETRY_CONFIG, SWAP_CONFIG } from "@/lib/constants";
+import { QUOTE_CONFIG, RETRY_CONFIG, SWAP_CONFIG } from "@/lib/constants";
 import { formatError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { floatToBigNumber, percentToPercentBps } from "@/lib/utils";
@@ -87,9 +87,19 @@ export const useMultiSwapRfq = () => {
         const observable = await omniston.requestForQuote(quoteRequest);
 
         return new Promise((resolve, reject) => {
+          let firstQuoteReceived = false;
+          let waitTimeout: NodeJS.Timeout | null = null;
+          let absoluteTimeout: NodeJS.Timeout | null = null;
+
+          const cleanup = () => {
+            if (waitTimeout) clearTimeout(waitTimeout);
+            if (absoluteTimeout) clearTimeout(absoluteTimeout);
+          };
+
           const subscription = observable.subscribe({
             next: (event: QuoteResponseEvent) => {
               if (event.type === "quoteUpdated") {
+                // Update state with the new quote
                 dispatch({
                   type: "SET_SWAP_QUOTE",
                   payload: {
@@ -98,21 +108,48 @@ export const useMultiSwapRfq = () => {
                     rfqId: event.rfqId,
                   },
                 });
-                subscription.unsubscribe();
-                resolve();
+
+                if (!firstQuoteReceived) {
+                  firstQuoteReceived = true;
+                  // Wait for potentially better quotes
+                  waitTimeout = setTimeout(() => {
+                    cleanup();
+                    subscription.unsubscribe();
+                    resolve();
+                  }, QUOTE_CONFIG.QUOTE_WAIT_FOR_BETTER_MS);
+                }
+                // If additional quotes come in, they automatically update via dispatch
               } else if (event.type === "unsubscribed") {
+                cleanup();
                 subscription.unsubscribe();
-                reject(new Error("Quote request timed out"));
+                if (firstQuoteReceived) {
+                  resolve();
+                } else {
+                  reject(new Error("Quote request timed out"));
+                }
               }
             },
             error: (error: unknown) => {
+              cleanup();
               subscription.unsubscribe();
               reject(error);
             },
           });
 
+          // Absolute timeout to prevent hanging indefinitely
+          absoluteTimeout = setTimeout(() => {
+            cleanup();
+            subscription.unsubscribe();
+            if (firstQuoteReceived) {
+              resolve();
+            } else {
+              reject(new Error("Quote request absolute timeout"));
+            }
+          }, QUOTE_CONFIG.QUOTE_TIMEOUT_MS);
+
           if (abortControllerRef.current) {
             abortControllerRef.current.signal.addEventListener("abort", () => {
+              cleanup();
               subscription.unsubscribe();
               reject(new Error("Aborted"));
             });
@@ -151,17 +188,21 @@ export const useMultiSwapRfq = () => {
     dispatch({ type: "START_QUOTING_ALL" });
 
     try {
-      for (let i = 0; i < swaps.length; i++) {
-        if (abortControllerRef.current.signal.aborted) {
-          break;
+      // Execute all RFQ requests in parallel
+      const quotePromises = swaps.map((swap) => {
+        if (abortControllerRef.current?.signal.aborted) {
+          return Promise.reject(new Error("Aborted"));
         }
+        // Wrap in promise to catch individual errors without failing others
+        return getQuoteForSwap(swap).catch((error) => {
+          logger.error(`Failed to get quote for swap ${swap.id}:`, error);
+          // Return null to indicate failure but don't throw
+          return null;
+        });
+      });
 
-        const swap = swaps[i];
-        if (!swap) continue;
-
-        dispatch({ type: "SET_CURRENT_QUOTING_INDEX", payload: i });
-        await getQuoteForSwap(swap);
-      }
+      // Wait for all quotes to complete (success or failure)
+      await Promise.all(quotePromises);
     } catch (error) {
       logger.error("Failed to get all quotes:", error);
     } finally {
