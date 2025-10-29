@@ -16,7 +16,6 @@ import {
   useMultiSwapDispatch,
 } from "@/providers/multi-swap";
 
-const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 
@@ -29,11 +28,11 @@ export const useMultiSwapRfq = () => {
 
   const getQuoteForSwap = useCallback(
     async (swap: SwapItem, retryCount = 0): Promise<void> => {
-      if (!swap.askAddress || !swap.bidAmount) {
+      if (!swap.bidAddress || !swap.askAddress || !swap.bidAmount) {
         throw new Error("Missing required fields");
       }
 
-      const bidAsset = getAssetByAddress(TON_ADDRESS);
+      const bidAsset = getAssetByAddress(swap.bidAddress);
       const askAsset = getAssetByAddress(swap.askAddress);
 
       if (!bidAsset || !askAsset) {
@@ -47,7 +46,7 @@ export const useMultiSwapRfq = () => {
           blockchain: Blockchain.TON,
         },
         bidAssetAddress: {
-          address: TON_ADDRESS,
+          address: swap.bidAddress,
           blockchain: Blockchain.TON,
         },
         amount: {

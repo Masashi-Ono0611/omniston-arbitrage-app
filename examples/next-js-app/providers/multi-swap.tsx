@@ -9,8 +9,11 @@ import {
   useReducer,
 } from "react";
 
+export const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
+
 export type SwapItem = {
   id: string;
+  bidAddress: string;
   askAddress: string;
   bidAmount: string;
   slippage: number;
@@ -30,6 +33,7 @@ const initialState: MultiSwapState = {
   swaps: [
     {
       id: crypto.randomUUID(),
+      bidAddress: TON_ADDRESS,
       askAddress: "",
       bidAmount: "",
       slippage: 0.05,
@@ -85,6 +89,7 @@ const multiSwapReducer = (
           ...state.swaps,
           {
             id: crypto.randomUUID(),
+            bidAddress: TON_ADDRESS,
             askAddress: "",
             bidAmount: "",
             slippage: 0.05,

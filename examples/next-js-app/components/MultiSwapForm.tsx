@@ -13,11 +13,10 @@ import type { AssetMetadata } from "@/models/asset";
 import { useAssets } from "@/providers/assets";
 import {
   type SwapItem,
+  TON_ADDRESS,
   useMultiSwap,
   useMultiSwapDispatch,
 } from "@/providers/multi-swap";
-
-const TON_ADDRESS = "EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c";
 
 const validateFloatValue = (value: string): boolean =>
   /^([0-9]+([.][0-9]*)?|[.][0-9]+)$/.test(value);
@@ -59,14 +58,33 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
   const dispatch = useMultiSwapDispatch();
   const { getAssetByAddress, assetsQuery, insertAsset } = useAssets();
 
+  const bidAsset = getAssetByAddress(swap.bidAddress);
   const askAsset = getAssetByAddress(swap.askAddress);
 
-  const availableAssets = [...(assetsQuery.data ?? new Map()).values()].filter(
-    (asset) => asset.contractAddress !== TON_ADDRESS,
+  const allAssets = [...(assetsQuery.data ?? new Map()).values()];
+  const availableAskAssets = allAssets.filter(
+    (asset) => asset.contractAddress !== swap.bidAddress,
+  );
+  const availableBidAssets = allAssets.filter(
+    (asset) => asset.contractAddress !== swap.askAddress,
   );
 
   const handleRemove = () => {
     dispatch({ type: "REMOVE_SWAP", payload: swap.id });
+  };
+
+  const handleBidAssetChange = (asset: AssetMetadata | null) => {
+    if (asset) {
+      insertAsset(asset);
+    }
+
+    dispatch({
+      type: "UPDATE_SWAP",
+      payload: {
+        id: swap.id,
+        updates: { bidAddress: asset?.contractAddress ?? TON_ADDRESS },
+      },
+    });
   };
 
   const handleAskAssetChange = (asset: AssetMetadata | null) => {
@@ -127,12 +145,21 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
             {index + 1}
           </div>
 
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Bid Asset (TON - Fixed) */}
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Bid Asset */}
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
-                You Bid (TON)
-              </Label>
+              <Label className="text-xs text-muted-foreground">You Bid</Label>
+              <AssetSelect
+                assets={availableBidAssets}
+                selectedAsset={bidAsset ?? null}
+                onAssetSelect={handleBidAssetChange}
+                loading={assetsQuery.isLoading}
+              />
+            </div>
+
+            {/* Bid Amount */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Amount</Label>
               <Input
                 type="text"
                 placeholder="0.0"
@@ -146,7 +173,7 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">You Ask</Label>
               <AssetSelect
-                assets={availableAssets}
+                assets={availableAskAssets}
                 selectedAsset={askAsset ?? null}
                 onAssetSelect={handleAskAssetChange}
                 loading={assetsQuery.isLoading}
