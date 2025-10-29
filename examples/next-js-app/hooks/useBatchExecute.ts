@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { useOmniston } from "@/hooks/useOmniston";
 import { useQueryId } from "@/hooks/useQueryId";
 import { SWAP_CONFIG } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 import { modifyQueryId } from "@/lib/payload-utils";
 import type { SwapItem } from "@/providers/multi-swap";
 import { useSwapSettings } from "@/providers/swap-settings";
@@ -72,11 +73,11 @@ export const useBatchExecute = () => {
         }));
 
         // Debug log: Output constructed messages
-        console.error(
+        logger.error(
           "[BatchTx] messages.forSend(JSON):",
           JSON.stringify(messagesForSend, null, 2),
         );
-        console.error(
+        logger.error(
           "[BatchTx] Auto-generated QueryID applied:",
           autoQueryId.toString(),
         );

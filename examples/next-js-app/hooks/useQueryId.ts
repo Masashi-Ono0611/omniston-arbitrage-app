@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 
 import { QUERY_ID } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 /**
  * Custom hook for generating and managing QueryIDs
@@ -42,7 +43,7 @@ export function useQueryId(userAddress?: string) {
           // Return as-is if valid number
           return queryId;
         } catch (error) {
-          console.warn("Invalid query ID format, generating new one:", queryId);
+          logger.warn("Invalid query ID format, generating new one:", queryId);
         }
       }
 
@@ -63,7 +64,7 @@ export function useQueryId(userAddress?: string) {
       try {
         return BigInt(idToUse);
       } catch (error) {
-        console.error("Query ID conversion error:", error);
+        logger.error("Query ID conversion error:", error);
         throw new Error("Invalid query ID format. Please enter a number");
       }
     },

@@ -10,6 +10,7 @@ import { useCallback, useRef } from "react";
 import { useOmniston } from "@/hooks/useOmniston";
 import { RETRY_CONFIG, SWAP_CONFIG } from "@/lib/constants";
 import { formatError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import { floatToBigNumber, percentToPercentBps } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import {
@@ -140,7 +141,7 @@ export const useMultiSwapRfq = () => {
         await getQuoteForSwap(swap);
       }
     } catch (error) {
-      console.error("Failed to get all quotes:", error);
+      logger.error("Failed to get all quotes:", error);
     } finally {
       dispatch({ type: "FINISH_QUOTING_ALL" });
       abortControllerRef.current = null;
