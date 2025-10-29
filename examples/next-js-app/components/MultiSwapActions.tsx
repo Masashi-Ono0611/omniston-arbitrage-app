@@ -8,7 +8,7 @@ import { validateSwapsForQuote } from "@/lib/validators";
 import { useMultiSwap } from "@/providers/multi-swap";
 
 export const MultiSwapActions = () => {
-  const { swaps, isQuotingAll, currentQuotingIndex } = useMultiSwap();
+  const { swaps, isQuotingAll } = useMultiSwap();
   const { getAllQuotes, cancelQuoting } = useMultiSwapRfq();
 
   const canGetQuotes = validateSwapsForQuote(swaps);
