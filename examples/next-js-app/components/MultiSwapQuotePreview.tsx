@@ -2,7 +2,7 @@
 
 import type { Quote, SwapSettlementParams } from "@ston-fi/omniston-sdk-react";
 import { ChevronDown } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 import { AddressPreview } from "@/components/AddressPreview";
 import {
@@ -11,67 +11,58 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Copy } from "@/components/ui/copy";
-import { useRfq } from "@/hooks/useRfq";
-import { bigNumberToFloat, cn, trimStringWithEllipsis } from "@/lib/utils";
+import { bigNumberToFloat, trimStringWithEllipsis } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
+import { useMultiSwap } from "@/providers/multi-swap";
 
-export const QuotePreview = (props: { className?: string }) => {
-  const { data: quoteEvent, error, isFetching, unsubscribe } = useRfq();
+export const MultiSwapQuotePreview = () => {
+  const { swaps } = useMultiSwap();
 
-  useEffect(() => {
-    if (error) console.error(error);
-  }, [error]);
+  const swapsWithQuotes = swaps.filter(
+    (swap) => swap.quote && swap.status === "success",
+  );
 
-  if (!isFetching && error == null) {
+  if (swapsWithQuotes.length === 0) {
     return null;
   }
 
   return (
-    <div
-      {...props}
-      className={cn(
-        "flex flex-col gap-2 p-4 border rounded-md",
-        props.className,
-      )}
-    >
-      {error ? (
-        <QuoteError errorMessage={`[${error.code}] ${error.message}`} />
-      ) : quoteEvent?.type === "unsubscribed" ? (
-        <QuoteError errorMessage="Request timed out" />
-      ) : quoteEvent?.type === "quoteUpdated" ? (
-        <>
-          <QuoteDataPresenter
-            quote={quoteEvent.quote}
-            rfqId={quoteEvent.rfqId}
-          />
-          <hr />
-          <QuoteRouteVisualizer {...quoteEvent.quote} />
-        </>
-      ) : (
-        <QuoteLoading />
-      )}
-
-      <button
-        className="inline-flex px-1 items-center rounded-sm border border-destructive text-destructive my-2"
-        onClick={unsubscribe}
-      >
-        Unsubscribe
-      </button>
+    <div className="flex flex-col gap-3">
+      <h2 className="text-lg font-medium">Quote Details</h2>
+      {swapsWithQuotes.map((swap, index) => (
+        <QuotePreviewCard
+          key={swap.id}
+          quote={swap.quote!}
+          rfqId={swap.rfqId!}
+          index={index}
+        />
+      ))}
     </div>
   );
 };
 
-const QuoteError = ({ errorMessage }: { errorMessage: string }) => {
+const QuotePreviewCard = ({
+  quote,
+  rfqId,
+  index,
+}: {
+  quote: Quote;
+  rfqId: string;
+  index: number;
+}) => {
   return (
-    <div className="text-red-500">
-      <span>Error:&nbsp;</span>
-      <span className="overflow-hidden text-ellipsis">{errorMessage}</span>
+    <div className="flex flex-col gap-2 p-4 border rounded-md bg-card">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-medium text-sm shrink-0">
+          {index + 1}
+        </div>
+        <h3 className="font-medium">Swap {index + 1}</h3>
+      </div>
+      <QuoteDataPresenter quote={quote} rfqId={rfqId} />
+      <hr />
+      <QuoteRouteVisualizer {...quote} />
     </div>
   );
-};
-
-const QuoteLoading = () => {
-  return <span>Waiting for a quote...</span>;
 };
 
 const QuoteDataPresenter = ({
@@ -173,12 +164,7 @@ function QuoteRouteVisualizer(quote: Quote) {
 }
 
 function SwapRouteVisualizer(swapParams: SwapSettlementParams) {
-  const {
-    routes,
-    minAskAmount,
-    recommendedMinAskAmount,
-    recommendedSlippageBps,
-  } = swapParams;
+  const { routes } = swapParams;
 
   return (
     <div className="flex flex-col gap-2 relative">
@@ -215,27 +201,20 @@ function SwapRouteVisualizerRoute({
     <div className="flex flex-col gap-2">
       <span>{`→ route ${swapParams.routes.indexOf(route) + 1}/${swapParams.routes.length}`}</span>
       {steps.map((step, i) => (
-        <SwapRouteVisualizerStep
-          key={i}
-          swapParams={swapParams}
-          route={route}
-          step={step}
-        />
+        <SwapRouteVisualizerStep key={i} route={route} step={step} />
       ))}
     </div>
   );
 }
 
 function SwapRouteVisualizerStep({
-  swapParams,
   route,
   step,
 }: {
-  swapParams: SwapSettlementParams;
   route: SwapSettlementParams["routes"][number];
   step: SwapSettlementParams["routes"][number]["steps"][number];
 }) {
-  const { chunks, bidAssetAddress, askAssetAddress } = step;
+  const { chunks } = step;
 
   return (
     <div className="flex flex-col gap-2 ml-5">
@@ -243,26 +222,16 @@ function SwapRouteVisualizerStep({
         {`↳ step ${route.steps.indexOf(step) + 1}/${route.steps.length}`}
       </span>
       {chunks.map((chunk, i) => (
-        <SwapRouteVisualizerChunk
-          key={i}
-          swapParams={swapParams}
-          route={route}
-          step={step}
-          chunk={chunk}
-        />
+        <SwapRouteVisualizerChunk key={i} step={step} chunk={chunk} />
       ))}
     </div>
   );
 }
 
 function SwapRouteVisualizerChunk({
-  swapParams,
-  route,
   step,
   chunk,
 }: {
-  swapParams: SwapSettlementParams;
-  route: SwapSettlementParams["routes"][number];
   step: SwapSettlementParams["routes"][number]["steps"][number];
   chunk: SwapSettlementParams["routes"][number]["steps"][number]["chunks"][number];
 }) {
