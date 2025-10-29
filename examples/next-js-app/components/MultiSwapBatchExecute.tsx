@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useBatchExecute } from "@/hooks/useBatchExecute";
 import { bigNumberToFloat } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
@@ -25,6 +26,7 @@ export const MultiSwapBatchExecute = () => {
   const { executeBatch, isExecuting } = useBatchExecute();
 
   const [isExecuted, setIsExecuted] = useState(false);
+  const [fixedQueryIdInput, setFixedQueryIdInput] = useState("");
 
   const swapsWithQuotes = swaps.filter(
     (swap) => swap.quote !== null && swap.status === "success",
@@ -37,7 +39,11 @@ export const MultiSwapBatchExecute = () => {
   }
 
   const handleBatchExecute = async () => {
-    await executeBatch(swapsWithQuotes);
+    const queryId = fixedQueryIdInput.trim();
+    await executeBatch(
+      swapsWithQuotes,
+      queryId.length > 0 ? queryId : undefined,
+    );
     setIsExecuted(true);
 
     // Reset all swap quotes after successful execution
@@ -122,6 +128,30 @@ export const MultiSwapBatchExecute = () => {
               );
             })}
           </div>
+
+          {/* QueryID Input */}
+          {!isExecuted && (
+            <div className="space-y-2">
+              <label
+                htmlFor="queryId"
+                className="text-sm font-medium text-muted-foreground"
+              >
+                Fixed Query ID (optional)
+              </label>
+              <Input
+                id="queryId"
+                placeholder="Decimal or 0x... (e.g., 12345 or 0x3039)"
+                value={fixedQueryIdInput}
+                onChange={(e) => setFixedQueryIdInput(e.target.value)}
+                disabled={isExecuting}
+                className="h-9"
+              />
+              <p className="text-xs text-muted-foreground">
+                💡 Specify a custom QueryID for all transactions (for debugging
+                or tracking)
+              </p>
+            </div>
+          )}
 
           {/* Execute Button */}
           {!isExecuted && (

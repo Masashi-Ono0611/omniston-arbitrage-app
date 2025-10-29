@@ -3,6 +3,7 @@ import { useTonConnectUI, useTonWallet } from "@tonconnect/ui-react";
 import { useCallback, useState } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
+import { modifyQueryId } from "@/lib/payload-utils";
 import type { SwapItem } from "@/providers/multi-swap";
 import { useSwapSettings } from "@/providers/swap-settings";
 
@@ -20,9 +21,11 @@ export const useBatchExecute = () => {
 
   /**
    * Build and send transaction for all quotes in a single batch
+   * @param swaps - Array of swap items with quotes
+   * @param fixedQueryId - Optional fixed QueryID (decimal or 0x... format)
    */
   const executeBatch = useCallback(
-    async (swaps: SwapItem[]) => {
+    async (swaps: SwapItem[], fixedQueryId?: string) => {
       if (!wallet) {
         throw new Error("Wallet not connected");
       }
@@ -36,6 +39,16 @@ export const useBatchExecute = () => {
       setIsExecuting(true);
 
       try {
+        // Normalize fixedQueryId to bigint
+        const rawFq = fixedQueryId?.trim?.() ?? "";
+        let fixedQueryIdBig: bigint | undefined = undefined;
+        if (rawFq.length > 0) {
+          try {
+            fixedQueryIdBig = BigInt(rawFq);
+          } catch {
+            fixedQueryIdBig = undefined;
+          }
+        }
         // Build all transfers in parallel using Promise.all
         const transactionResponses = await Promise.all(
           swapsWithQuotes.map((swap) =>
@@ -67,15 +80,33 @@ export const useBatchExecute = () => {
           throw new Error("No messages generated from quotes");
         }
 
+        // Apply fixedQueryId to messages and prepare for sending
+        const messagesForSend = allMessages.map((message) => ({
+          address: message.targetAddress,
+          amount: message.sendAmount,
+          payload:
+            message.payload && fixedQueryIdBig !== undefined
+              ? modifyQueryId(message.payload, fixedQueryIdBig)
+              : message.payload,
+          stateInit: message.jettonWalletStateInit,
+        }));
+
+        // Debug log: Output constructed messages
+        console.error(
+          "[BatchTx] messages.forSend(JSON):",
+          JSON.stringify(messagesForSend, null, 2),
+        );
+        if (fixedQueryIdBig !== undefined) {
+          console.error(
+            "[BatchTx] Fixed QueryID applied:",
+            fixedQueryIdBig.toString(),
+          );
+        }
+
         // Send all messages in a single batch transaction
         await tonConnect.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + 5 * 60,
-          messages: allMessages.map((message) => ({
-            address: message.targetAddress,
-            amount: message.sendAmount,
-            payload: message.payload,
-            stateInit: message.jettonWalletStateInit,
-          })),
+          messages: messagesForSend,
         });
       } finally {
         setIsExecuting(false);
