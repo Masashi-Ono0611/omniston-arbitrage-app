@@ -8,7 +8,6 @@ import { SWAP_CONFIG } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { modifyQueryId } from "@/lib/payload-utils";
 import type { SwapItem } from "@/providers/multi-swap";
-import { useSwapSettings } from "@/providers/swap-settings";
 
 /**
  * Hook for batch executing multiple swaps in a single transaction
@@ -18,7 +17,6 @@ export const useBatchExecute = () => {
   const wallet = useTonWallet();
   const [tonConnect] = useTonConnectUI();
   const omniston = useOmniston();
-  const { autoSlippageTolerance } = useSwapSettings();
   const { getQueryIdAsBigInt } = useQueryId(wallet?.account.address.toString());
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -54,7 +52,7 @@ export const useBatchExecute = () => {
                 address: walletAddress,
                 blockchain: Blockchain.TON,
               },
-              useRecommendedSlippage: autoSlippageTolerance,
+              useRecommendedSlippage: false,
             }),
           ),
         );
@@ -93,7 +91,7 @@ export const useBatchExecute = () => {
         setIsExecuting(false);
       }
     },
-    [wallet, omniston, tonConnect, autoSlippageTolerance, getQueryIdAsBigInt],
+    [wallet, omniston, tonConnect, getQueryIdAsBigInt],
   );
 
   return {

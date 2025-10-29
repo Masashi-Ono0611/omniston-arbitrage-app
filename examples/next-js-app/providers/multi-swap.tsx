@@ -11,12 +11,15 @@ import {
 
 import { SWAP_CONFIG } from "@/lib/constants";
 
+export const DEFAULT_SLIPPAGE = 0.05;
+
 export type SwapItem = {
   id: string;
   bidAddress: string;
   askAddress: string;
   bidAmount: string;
   slippage: number;
+  autoSlippage: boolean;
   quote: Quote | null;
   rfqId: string | null;
   status: "idle" | "loading" | "success" | "error";
@@ -34,7 +37,8 @@ const createEmptySwap = (): SwapItem => ({
   bidAddress: "",
   askAddress: "",
   bidAmount: "",
-  slippage: 0.05,
+  slippage: DEFAULT_SLIPPAGE,
+  autoSlippage: false,
   quote: null,
   rfqId: null,
   status: "idle",

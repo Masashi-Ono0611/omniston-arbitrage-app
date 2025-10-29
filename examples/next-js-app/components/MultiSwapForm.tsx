@@ -15,6 +15,7 @@ import { validateFloatValue } from "@/lib/validators";
 import type { AssetMetadata } from "@/models/asset";
 import { useAssets } from "@/providers/assets";
 import {
+  DEFAULT_SLIPPAGE,
   type SwapItem,
   useMultiSwap,
   useMultiSwapDispatch,
@@ -109,7 +110,29 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
     if (slippage >= 0 && slippage <= 1) {
       dispatch({
         type: "UPDATE_SWAP",
-        payload: { id: swap.id, updates: { slippage } },
+        payload: { id: swap.id, updates: { slippage, autoSlippage: false } },
+      });
+    }
+  };
+
+  const handleAutoSlippage = () => {
+    if (swap.autoSlippage) {
+      // Disable AUTO mode and set to default slippage
+      dispatch({
+        type: "UPDATE_SWAP",
+        payload: {
+          id: swap.id,
+          updates: { autoSlippage: false, slippage: DEFAULT_SLIPPAGE },
+        },
+      });
+    } else {
+      // Enable AUTO mode
+      dispatch({
+        type: "UPDATE_SWAP",
+        payload: {
+          id: swap.id,
+          updates: { autoSlippage: true, slippage: DEFAULT_SLIPPAGE },
+        },
       });
     }
   };
@@ -175,13 +198,34 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
               <Label className="text-xs text-muted-foreground">
                 Slippage (%)
               </Label>
-              <Input
-                type="text"
-                placeholder="5.0"
-                value={decimalToPercent(swap.slippage)}
-                onChange={handleSlippageChange}
-                disabled={swap.status === "loading"}
-              />
+              <div className="flex gap-2">
+                {swap.autoSlippage ? (
+                  <Input
+                    type="text"
+                    value="Auto"
+                    disabled
+                    className="flex-1"
+                  />
+                ) : (
+                  <Input
+                    type="text"
+                    placeholder="5.0"
+                    value={decimalToPercent(swap.slippage)}
+                    onChange={handleSlippageChange}
+                    disabled={swap.status === "loading"}
+                    className="flex-1"
+                  />
+                )}
+                <Button
+                  variant={swap.autoSlippage ? "default" : "secondary"}
+                  size="sm"
+                  onClick={handleAutoSlippage}
+                  disabled={swap.status === "loading"}
+                  className="shrink-0"
+                >
+                  Auto
+                </Button>
+              </div>
             </div>
           </div>
 
