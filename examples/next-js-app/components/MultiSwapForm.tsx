@@ -181,16 +181,8 @@ const SwapItemCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
         </div>
 
         {/* Status Display */}
-        {swap.status === "loading" && (
-          <div className="mt-3 text-sm text-blue-600">Getting quote...</div>
-        )}
         {swap.status === "error" && swap.error && (
           <div className="mt-3 text-sm text-red-600">Error: {swap.error}</div>
-        )}
-        {swap.status === "success" && swap.quote && (
-          <div className="mt-3 text-sm text-green-600">
-            Quote received: {swap.quote.quoteId.slice(0, 8)}...
-          </div>
         )}
       </CardContent>
     </Card>
