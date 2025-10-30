@@ -97,6 +97,15 @@ export function formatGasAmount(nanoTon: bigint): string {
 }
 
 /**
+ * Format error message from unknown error type
+ */
+export function formatError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return String(error);
+}
+
+/**
  * Validate arbitrage parameters
  */
 export function validateArbitrageParams(

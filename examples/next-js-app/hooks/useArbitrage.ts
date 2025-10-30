@@ -119,20 +119,17 @@ export const useArbitrage = () => {
   /**
    * Clear opportunity history
    */
-  const clearHistory = useCallback(() => {
+  const clearHistory = () => {
     setOpportunityHistory([]);
-  }, []);
+  };
 
-  /**
-   * Get quotes for manual execution
-   */
-  const getQuotesForExecution = useCallback(():
+  const getQuotesForExecution = ():
     | { forward: Quote; reverse: Quote }
     | null => {
     return forwardStream.quote && reverseStream.quote
       ? { forward: forwardStream.quote, reverse: reverseStream.quote }
       : null;
-  }, [forwardStream.quote, reverseStream.quote]);
+  };
 
   return {
     // Status

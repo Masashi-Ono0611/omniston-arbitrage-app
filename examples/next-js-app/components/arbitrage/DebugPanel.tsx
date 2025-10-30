@@ -43,7 +43,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
     scanAmount,
   } = debugInfo;
 
-  // Calculate actual rate from net profit
+  const hasBothQuotes = forwardQuote && reverseQuote;
   const actualRate = ((Number(netProfit) / Number(scanAmount)) * 100);
 
   return (
@@ -101,7 +101,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
         </div>
 
         {/* Quote Details */}
-        {forwardQuote && reverseQuote && (
+        {hasBothQuotes && (
           <div className="rounded-md bg-white p-2 dark:bg-gray-800">
             <p className="mb-1 font-semibold text-gray-600 dark:text-gray-400">
               Quote Details
@@ -146,7 +146,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
         )}
 
         {/* Profit Calculation */}
-        {forwardQuote && reverseQuote && (
+        {hasBothQuotes && (
           <div className="rounded-md bg-white p-2 dark:bg-gray-800">
             <p className="mb-1 font-semibold text-gray-600 dark:text-gray-400">
               Profit Calculation
@@ -201,7 +201,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
         )}
 
         {/* Final Result */}
-        {forwardQuote && reverseQuote && (
+        {hasBothQuotes && (
           <div className="rounded-md bg-white p-2 dark:bg-gray-800">
             <p className="mb-1 font-semibold text-gray-600 dark:text-gray-400">
               Final Result
