@@ -22,7 +22,7 @@ export function QuoteStreamStatus({
   const [showHistory, setShowHistory] = useState(false);
   const { status, quote, lastUpdate, error, history } = stream;
 
-  const formatAmount = (amount: string, decimals: number = 6): string => {
+  const formatQuoteAmount = (amount: string, decimals: number = 6): string => {
     const value = Number(amount) / 10 ** decimals;
     return value.toFixed(2);
   };
@@ -79,13 +79,13 @@ export function QuoteStreamStatus({
           <div className="flex justify-between">
             <span className="text-gray-600 dark:text-gray-400">Bid:</span>
             <span className="font-mono font-semibold">
-              {formatAmount(quote.bidUnits)}
+              {formatQuoteAmount(quote.bidUnits)}
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600 dark:text-gray-400">Ask:</span>
             <span className="font-mono font-semibold">
-              {formatAmount(quote.askUnits)}
+              {formatQuoteAmount(quote.askUnits)}
             </span>
           </div>
           <div className="flex justify-between">

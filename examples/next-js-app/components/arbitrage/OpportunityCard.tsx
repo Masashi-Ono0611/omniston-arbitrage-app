@@ -4,6 +4,7 @@ import { ArrowRight, TrendingUp } from "lucide-react";
 
 import type { ArbitrageOpportunity } from "@/lib/arbitrage/types";
 import { cn } from "@/lib/utils";
+import { formatAmount, formatTimestamp } from "@/lib/arbitrage/utils";
 
 interface OpportunityCardProps {
   opportunity: ArbitrageOpportunity;
@@ -26,16 +27,6 @@ export function OpportunityCard({
     forwardQuote,
     reverseQuote,
   } = opportunity;
-
-  const formatAmount = (amount: bigint, decimals: number = 6): string => {
-    const value = Number(amount) / 10 ** decimals;
-    return value.toFixed(decimals);
-  };
-
-  const formatTimestamp = (ts: number): string => {
-    const date = new Date(ts);
-    return date.toLocaleTimeString();
-  };
 
   // Calculate slippage cost for display (estimated from current setting)
   const slippageBps = 50; // This would be passed from scanner in real implementation

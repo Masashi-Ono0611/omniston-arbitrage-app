@@ -2,7 +2,7 @@ import type { Quote } from "@ston-fi/omniston-sdk-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
-import { DEFAULT_TARGET_PROFIT_RATE } from "@/lib/arbitrage/constants";
+import { DEFAULT_TARGET_PROFIT_RATE, HISTORY_LIMITS } from "@/lib/arbitrage/constants";
 import type {
   ArbitrageOpportunity,
   DebugInfo,
@@ -11,6 +11,7 @@ import type {
 } from "@/lib/arbitrage/types";
 import { ArbitrageScanner } from "@/lib/arbitrage/scanner";
 import { logger } from "@/lib/logger";
+import { createQuoteStreamUpdater, createInitialQuoteStream, validateArbitrageParams } from "@/lib/arbitrage/utils";
 
 /**
  * Custom hook for arbitrage scanning
@@ -21,6 +22,8 @@ import { logger } from "@/lib/logger";
 export const useArbitrage = () => {
   const omniston = useOmniston();
   const scannerRef = useRef<ArbitrageScanner | null>(null);
+  const updateForwardStream = useRef(createQuoteStreamUpdater("forward"));
+  const updateReverseStream = useRef(createQuoteStreamUpdater("reverse"));
 
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -28,22 +31,8 @@ export const useArbitrage = () => {
   const [opportunityHistory, setOpportunityHistory] = useState<ArbitrageOpportunity[]>([]);
   const [currentMinProfitRate, setCurrentMinProfitRate] = useState<number>(DEFAULT_TARGET_PROFIT_RATE);
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
-  const [forwardStream, setForwardStream] = useState<QuoteStreamState>({
-    quote: null,
-    rfqId: null,
-    lastUpdate: 0,
-    status: "idle",
-    error: null,
-    history: [],
-  });
-  const [reverseStream, setReverseStream] = useState<QuoteStreamState>({
-    quote: null,
-    rfqId: null,
-    lastUpdate: 0,
-    status: "idle",
-    error: null,
-    history: [],
-  });
+  const [forwardStream, setForwardStream] = useState<QuoteStreamState>(createInitialQuoteStream());
+  const [reverseStream, setReverseStream] = useState<QuoteStreamState>(createInitialQuoteStream());
 
   /**
    * Initialize scanner
@@ -56,7 +45,7 @@ export const useArbitrage = () => {
       scannerRef.current.onOpportunity((opportunity) => {
         logger.info("Arbitrage opportunity detected:", opportunity);
         setCurrentOpportunity(opportunity);
-        setOpportunityHistory((prev) => [opportunity, ...prev].slice(0, 50)); // Keep last 50
+        setOpportunityHistory((prev) => [opportunity, ...prev].slice(0, HISTORY_LIMITS.OPPORTUNITY_HISTORY)); // Keep last opportunities
       });
 
       scannerRef.current.onError((err) => {
@@ -72,51 +61,9 @@ export const useArbitrage = () => {
 
       scannerRef.current.onQuoteUpdate((direction, quote, rfqId, receivedAt) => {
         if (direction === "forward") {
-          setForwardStream((prev) => {
-            // Add to history (like sample's SET_SWAP_QUOTE)
-            const newHistory = [
-              ...prev.history,
-              {
-                quote,
-                rfqId,
-                receivedAt,
-                resolverName: quote.resolverName,
-              },
-            ].slice(-20); // Keep last 20
-
-            // Force new object reference (like sample)
-            return {
-              quote,
-              rfqId,
-              lastUpdate: receivedAt,
-              status: "active" as const,
-              error: null,
-              history: newHistory,
-            };
-          });
+          setForwardStream(prev => updateForwardStream.current(prev, quote, rfqId, receivedAt));
         } else {
-          setReverseStream((prev) => {
-            // Add to history (like sample's SET_SWAP_QUOTE)
-            const newHistory = [
-              ...prev.history,
-              {
-                quote,
-                rfqId,
-                receivedAt,
-                resolverName: quote.resolverName,
-              },
-            ].slice(-20); // Keep last 20
-
-            // Force new object reference (like sample)
-            return {
-              quote,
-              rfqId,
-              lastUpdate: receivedAt,
-              status: "active" as const,
-              error: null,
-              history: newHistory,
-            };
-          });
+          setReverseStream(prev => updateReverseStream.current(prev, quote, rfqId, receivedAt));
         }
       });
     }
@@ -135,6 +82,12 @@ export const useArbitrage = () => {
     async (tokenAAddress: string, tokenBAddress: string, amount: bigint, slippageBps: number, minProfitRate: number) => {
       if (!scannerRef.current) {
         throw new Error("Scanner not initialized");
+      }
+
+      // Validate parameters
+      const validationError = validateArbitrageParams(tokenAAddress, tokenBAddress, amount, slippageBps, minProfitRate);
+      if (validationError) {
+        throw new Error(validationError);
       }
 
       setStatus("initializing");
@@ -163,22 +116,8 @@ export const useArbitrage = () => {
     if (scannerRef.current) {
       scannerRef.current.stopScanning();
       setStatus("idle");
-      setForwardStream({
-        quote: null,
-        rfqId: null,
-        lastUpdate: 0,
-        status: "idle",
-        error: null,
-        history: [],
-      });
-      setReverseStream({
-        quote: null,
-        rfqId: null,
-        lastUpdate: 0,
-        status: "idle",
-        error: null,
-        history: [],
-      });
+      setForwardStream(createInitialQuoteStream());
+      setReverseStream(createInitialQuoteStream());
       logger.info("Arbitrage scanning stopped");
     }
   }, []);
@@ -196,14 +135,9 @@ export const useArbitrage = () => {
   const getQuotesForExecution = useCallback(():
     | { forward: Quote; reverse: Quote }
     | null => {
-    if (!forwardStream.quote || !reverseStream.quote) {
-      return null;
-    }
-
-    return {
-      forward: forwardStream.quote,
-      reverse: reverseStream.quote,
-    };
+    return forwardStream.quote && reverseStream.quote
+      ? { forward: forwardStream.quote, reverse: reverseStream.quote }
+      : null;
   }, [forwardStream.quote, reverseStream.quote]);
 
   return {

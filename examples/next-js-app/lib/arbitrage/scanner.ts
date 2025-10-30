@@ -12,6 +12,7 @@ import {
   DEFAULT_GAS_UNITS,
   DEFAULT_SLIPPAGE_BPS,
   DEFAULT_TARGET_PROFIT_RATE,
+  POLLING_INTERVAL_MS,
 } from "./constants";
 import {
   calculateArbitrageProfit,
@@ -41,26 +42,22 @@ export class ArbitrageScanner {
   private omniston: Omniston;
   private config: ArbitrageScannerConfig;
   private currentSlippageBps: number = DEFAULT_SLIPPAGE_BPS;
-  private currentMinProfitRate: number = 0.001; // Default 0.1%
+  private currentMinProfitRate: number = DEFAULT_TARGET_PROFIT_RATE;
   
+  private createInitialStreamState(): QuoteStreamState {
+    return {
+      quote: null,
+      rfqId: null,
+      lastUpdate: 0,
+      status: "idle",
+      error: null,
+      history: [],
+    };
+  }
+
   // Quote stream states
-  private forwardStream: QuoteStreamState = {
-    quote: null,
-    rfqId: null,
-    lastUpdate: 0,
-    status: "idle",
-    error: null,
-    history: [],
-  };
-  
-  private reverseStream: QuoteStreamState = {
-    quote: null,
-    rfqId: null,
-    lastUpdate: 0,
-    status: "idle",
-    error: null,
-    history: [],
-  };
+  private forwardStream: QuoteStreamState = this.createInitialStreamState();
+  private reverseStream: QuoteStreamState = this.createInitialStreamState();
   
   // Subscriptions
   private forwardSubscription: { unsubscribe: () => void } | null = null;
@@ -98,7 +95,7 @@ export class ArbitrageScanner {
     tokenBAddress: string,
     scanAmount: bigint,
     slippageBps: number = DEFAULT_SLIPPAGE_BPS,
-    minProfitRate: number = 0.001, // Default 0.1%
+    minProfitRate: number = DEFAULT_TARGET_PROFIT_RATE,
   ): Promise<void> {
     // Stop any existing scans
     this.stopScanning();
@@ -422,12 +419,18 @@ export class ArbitrageScanner {
   }
 
   /**
-   * Wait for forward quote to arrive
+   * Wait for forward quote to arrive with timeout
    */
-  private async waitForForwardQuote(): Promise<void> {
+  private async waitForForwardQuote(timeoutMs: number = 10000): Promise<void> {
+    const startTime = Date.now();
+    
     while (!this.forwardStream.quote) {
-      // Wait 100ms before checking again
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      if (Date.now() - startTime > timeoutMs) {
+        throw new Error(`Timeout waiting for forward quote after ${timeoutMs}ms`);
+      }
+      
+      // Wait before checking again
+      await new Promise((resolve) => setTimeout(resolve, POLLING_INTERVAL_MS));
     }
   }
 
@@ -435,22 +438,7 @@ export class ArbitrageScanner {
    * Reset stream states
    */
   private resetStreamStates(): void {
-    this.forwardStream = {
-      quote: null,
-      rfqId: null,
-      lastUpdate: 0,
-      status: "idle",
-      error: null,
-      history: [],
-    };
-
-    this.reverseStream = {
-      quote: null,
-      rfqId: null,
-      lastUpdate: 0,
-      status: "idle",
-      error: null,
-      history: [],
-    };
+    this.forwardStream = this.createInitialStreamState();
+    this.reverseStream = this.createInitialStreamState();
   }
 }
