@@ -390,7 +390,6 @@ export class ArbitrageScanner {
       reverseQuote,
       grossProfit,
       netProfit,
-      profitRate,
       targetProfitRate: this.currentMinProfitRate,
       gasCost: actualGasCost,
       slippageCost,

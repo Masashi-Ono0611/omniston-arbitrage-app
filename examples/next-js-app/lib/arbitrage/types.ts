@@ -8,7 +8,6 @@ export interface DebugInfo {
   reverseQuote: Quote | null;
   grossProfit: bigint;
   netProfit: bigint;
-  profitRate: number;
   targetProfitRate: number;
   gasCost: bigint;
   slippageCost: bigint;

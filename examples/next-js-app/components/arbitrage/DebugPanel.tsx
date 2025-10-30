@@ -1,7 +1,6 @@
 "use client";
 
 import { Calculator } from "lucide-react";
-import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
 import type { DebugInfo } from "@/lib/arbitrage/types";
@@ -12,10 +11,10 @@ interface DebugPanelProps {
 }
 
 export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
-  const formatAmount = useMemo(() => (amount: bigint, decimals: number = 6): string => {
+  const formatAmount = (amount: bigint, decimals: number = 6): string => {
     const value = Number(amount) / 10 ** decimals;
     return value.toFixed(decimals);
-  }, []);
+  };
 
   if (!debugInfo) {
     return (
@@ -39,7 +38,6 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
     reverseQuote,
     grossProfit,
     netProfit,
-    profitRate,
     targetProfitRate,
     gasCost,
     slippageCost,
