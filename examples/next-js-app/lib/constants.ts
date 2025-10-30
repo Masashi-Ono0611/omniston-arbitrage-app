@@ -45,6 +45,16 @@ export const RETRY_CONFIG = {
 } as const;
 
 /**
+ * Quote request configuration constants
+ */
+export const QUOTE_CONFIG = {
+  /** Timeout for quote request in milliseconds (30 seconds) */
+  QUOTE_TIMEOUT_MS: 30000,
+  /** Wait time for better quotes after first quote received (milliseconds) */
+  QUOTE_WAIT_FOR_BETTER_MS: 3000,
+} as const;
+
+/**
  * LocalStorage keys
  */
 export const STORAGE_KEYS = {

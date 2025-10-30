@@ -22,7 +22,7 @@ export const logger = {
    */
   info: (message: string, ...data: unknown[]) => {
     if (isDevelopment) {
-      console.info(message, ...data);
+      console.info(`[INFO] ${message}`, ...data);
     }
   },
 
@@ -32,7 +32,7 @@ export const logger = {
    */
   warn: (message: string, ...data: unknown[]) => {
     if (isDevelopment) {
-      console.warn(message, ...data);
+      console.warn(`[WARN] ${message}`, ...data);
     }
   },
 
@@ -42,7 +42,7 @@ export const logger = {
    */
   error: (message: string, ...data: unknown[]) => {
     if (isDevelopment) {
-      console.error(message, ...data);
+      console.error(`[ERROR] ${message}`, ...data);
     }
   },
 } as const;

@@ -14,6 +14,13 @@ export const Copy = React.forwardRef<HTMLDivElement, CopyProps>(
   ({ className, value, children, onClick, ...props }, ref) => {
     const [copied, setCopied] = React.useState(false);
 
+    React.useEffect(() => {
+      if (copied) {
+        const resetTimeout = setTimeout(() => setCopied(false), 1500);
+        return () => clearTimeout(resetTimeout);
+      }
+    }, [copied]);
+
     const handleCopy = async (e: React.MouseEvent<HTMLDivElement>) => {
       e.preventDefault();
       e.stopPropagation();
@@ -21,9 +28,6 @@ export const Copy = React.forwardRef<HTMLDivElement, CopyProps>(
       try {
         await navigator.clipboard.writeText(value);
         setCopied(true);
-
-        // Reset the copied state after animation
-        setTimeout(() => setCopied(false), 1500);
       } catch (err) {
         console.error("Failed to copy to clipboard:", err);
       }
