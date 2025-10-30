@@ -55,43 +55,61 @@ const SwapHeader = memo(
           {index + 1}
         </div>
         <h3 className="font-medium">Swap {index + 1}</h3>
-        <StatusBadge status={swap.status} />
+        <StatusBadge
+          status={swap.status}
+          quoteHistory={swap.quoteHistory}
+          isRfqActive={swap.isRfqActive}
+        />
       </div>
     );
   },
 );
 SwapHeader.displayName = "SwapHeader";
 
-const StatusBadge = memo(({ status }: { status: SwapItem["status"] }) => {
-  if (status === "loading") {
-    return (
-      <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 ml-auto">
-        <Loader2 className="animate-spin" size={14} />
-        <span className="text-xs font-medium">Getting quote...</span>
-      </div>
-    );
-  }
+const StatusBadge = memo(
+  ({
+    status,
+    quoteHistory,
+    isRfqActive,
+  }: {
+    status: SwapItem["status"];
+    quoteHistory: SwapItem["quoteHistory"];
+    isRfqActive: boolean;
+  }) => {
+    if (status === "loading") {
+      return (
+        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 ml-auto">
+          <Loader2 className="animate-spin" size={14} />
+          <span className="text-xs font-medium">Getting quote...</span>
+        </div>
+      );
+    }
 
-  if (status === "success") {
-    return (
-      <div className="flex items-center gap-1 text-green-600 dark:text-green-400 ml-auto">
-        <CheckCircle size={14} />
-        <span className="text-xs font-medium">Quote received</span>
-      </div>
-    );
-  }
+    if (status === "success") {
+      const statusText = isRfqActive
+        ? "Quote received & updating..."
+        : "Quote received (RFQ stopped)";
 
-  if (status === "error") {
-    return (
-      <div className="flex items-center gap-1 text-red-600 dark:text-red-400 ml-auto">
-        <AlertCircle size={14} />
-        <span className="text-xs font-medium">Error</span>
-      </div>
-    );
-  }
+      return (
+        <div className="flex items-center gap-1 text-green-600 dark:text-green-400 ml-auto">
+          <CheckCircle size={14} />
+          <span className="text-xs font-medium">{statusText}</span>
+        </div>
+      );
+    }
 
-  return null;
-});
+    if (status === "error") {
+      return (
+        <div className="flex items-center gap-1 text-red-600 dark:text-red-400 ml-auto">
+          <AlertCircle size={14} />
+          <span className="text-xs font-medium">Error</span>
+        </div>
+      );
+    }
+
+    return null;
+  },
+);
 StatusBadge.displayName = "StatusBadge";
 
 const SwapContent = ({ swap }: { swap: SwapItem }) => {

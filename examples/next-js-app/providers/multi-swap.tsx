@@ -25,6 +25,7 @@ export type SwapItem = {
   rfqId: string | null;
   status: "idle" | "loading" | "success" | "error";
   error: string | null;
+  isRfqActive: boolean;
   quoteHistory: {
     quoteId: string;
     receivedAt: number;
@@ -48,6 +49,7 @@ const createEmptySwap = (): SwapItem => ({
   rfqId: null,
   status: "idle",
   error: null,
+  isRfqActive: false,
   quoteHistory: [],
 });
 
@@ -74,6 +76,10 @@ type MultiSwapAction =
         status: SwapItem["status"];
         error?: string | null;
       };
+    }
+  | {
+      type: "SET_RFQ_ACTIVE";
+      payload: { id: string; isActive: boolean };
     }
   | { type: "START_QUOTING_ALL" }
   | { type: "FINISH_QUOTING_ALL" }
@@ -162,6 +168,19 @@ const multiSwapReducer = (
         ),
       };
 
+    case "SET_RFQ_ACTIVE":
+      return {
+        ...state,
+        swaps: state.swaps.map((swap) =>
+          swap.id === action.payload.id
+            ? {
+                ...swap,
+                isRfqActive: action.payload.isActive,
+              }
+            : swap,
+        ),
+      };
+
     case "START_QUOTING_ALL":
       return {
         ...state,
@@ -172,6 +191,7 @@ const multiSwapReducer = (
           error: null,
           quote: null,
           rfqId: null,
+          isRfqActive: false,
           quoteHistory: [],
         })),
       };
@@ -193,6 +213,7 @@ const multiSwapReducer = (
                 rfqId: null,
                 status: "idle",
                 error: null,
+                isRfqActive: false,
                 quoteHistory: [],
               }
             : swap,

@@ -88,6 +88,12 @@ export const useMultiSwapRfq = () => {
           payload: { id: swap.id, status: "loading", error: null },
         });
 
+        // Mark RFQ as active
+        dispatch({
+          type: "SET_RFQ_ACTIVE",
+          payload: { id: swap.id, isActive: true },
+        });
+
         const observable = await omniston.requestForQuote(quoteRequest);
         logger.info(`[RFQ] Observable created for Swap ${swap.id}`);
 
@@ -136,6 +142,11 @@ export const useMultiSwapRfq = () => {
                 logger.warn(
                   `[RFQ] Unsubscribed event received for Swap ${swap.id}`,
                 );
+                // Mark RFQ as inactive
+                dispatch({
+                  type: "SET_RFQ_ACTIVE",
+                  payload: { id: swap.id, isActive: false },
+                });
                 subscriptionsRef.current.delete(swap.id);
                 subscription.unsubscribe();
                 if (firstQuoteReceived) {
@@ -156,6 +167,11 @@ export const useMultiSwapRfq = () => {
                 `[RFQ] Error in subscription for Swap ${swap.id}:`,
                 error,
               );
+              // Mark RFQ as inactive on error
+              dispatch({
+                type: "SET_RFQ_ACTIVE",
+                payload: { id: swap.id, isActive: false },
+              });
               subscriptionsRef.current.delete(swap.id);
               subscription.unsubscribe();
               reject(error);
@@ -165,6 +181,11 @@ export const useMultiSwapRfq = () => {
           if (abortControllerRef.current) {
             abortControllerRef.current.signal.addEventListener("abort", () => {
               logger.warn(`[RFQ] Abort signal received for Swap ${swap.id}`);
+              // Mark RFQ as inactive on abort
+              dispatch({
+                type: "SET_RFQ_ACTIVE",
+                payload: { id: swap.id, isActive: false },
+              });
               subscriptionsRef.current.delete(swap.id);
               subscription.unsubscribe();
               reject(new Error("Aborted"));
