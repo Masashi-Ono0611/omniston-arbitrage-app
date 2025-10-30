@@ -179,6 +179,7 @@ export class ApiClient implements IApiClient {
         consumer?.(undefined, payload.result);
       }
     });
+    this.streamConsumers.set(method, result);
     return result;
   }
 }

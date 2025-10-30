@@ -2,6 +2,7 @@
 
 import { TonConnectButton } from "@tonconnect/ui-react";
 import Image from "next/image";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import GitBookIcon from "@/public/icons/gitbook.svg";
@@ -14,7 +15,7 @@ export function Header() {
         <a
           href="https://ston.fi"
           target="_blank noopener noreferrer"
-          className="hover:opacity-80 transition-opacity relative mr-auto"
+          className="hover:opacity-80 transition-opacity relative"
         >
           <Image
             src="https://static.ston.fi/branbook/omniston/logo/black.svg"
@@ -26,6 +27,21 @@ export function Header() {
             example
           </Badge>
         </a>
+
+        <nav className="mr-auto flex gap-4 ml-8">
+          <Link
+            href="/"
+            className="text-sm font-medium hover:text-blue-600 transition-colors"
+          >
+            Multi-Swap
+          </Link>
+          <Link
+            href="/arbitrage"
+            className="text-sm font-medium hover:text-blue-600 transition-colors"
+          >
+            Arbitrage
+          </Link>
+        </nav>
 
         <TonConnectButton />
         <a
