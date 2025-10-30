@@ -1,7 +1,10 @@
 "use client";
 
-import { Activity, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { Activity, AlertCircle, CheckCircle, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 
+import { Copy as CopyButton } from "@/components/ui/copy";
+import { trimStringWithEllipsis } from "@/lib/utils";
 import type { QuoteStreamState } from "@/lib/arbitrage/types";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +19,8 @@ export function QuoteStreamStatus({
   stream,
   className,
 }: QuoteStreamStatusProps) {
-  const { status, quote, lastUpdate, error } = stream;
+  const [showHistory, setShowHistory] = useState(false);
+  const { status, quote, lastUpdate, error, history } = stream;
 
   const formatAmount = (amount: string, decimals: number = 6): string => {
     const value = Number(amount) / 10 ** decimals;
@@ -100,6 +104,59 @@ export function QuoteStreamStatus({
               <span className="text-xs font-mono text-gray-500">
                 {new Date(lastUpdate).toLocaleTimeString()}
               </span>
+            </div>
+          )}
+
+          {/* Quote history toggle */}
+          {history.length > 0 && (
+            <div className="border-t pt-2">
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                {showHistory ? (
+                  <ChevronUp className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
+                )}
+                Quote History ({history.length})
+              </button>
+            </div>
+          )}
+
+          {/* Quote history list */}
+          {showHistory && history.length > 0 && (
+            <div className="mt-2 border-t pt-2">
+              <h4 className="text-xs font-medium mb-2 text-gray-600 dark:text-gray-400">
+                Quote Updates
+              </h4>
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {history.map((entry, index) => (
+                  <div
+                    key={`${entry.rfqId}-${entry.receivedAt}`}
+                    className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400"
+                  >
+                    <span className="text-muted-foreground w-4">
+                      {history.length - index}.
+                    </span>
+                    <span className="text-muted-foreground">
+                      {new Date(entry.receivedAt).toLocaleTimeString()}
+                    </span>
+                    <span className="text-muted-foreground">|</span>
+                    <span className="text-muted-foreground">Rate:</span>
+                    <span className="font-mono">
+                      {(
+                        Number(entry.quote.askUnits) /
+                        Number(entry.quote.bidUnits)
+                      ).toFixed(6)}
+                    </span>
+                    <span className="text-muted-foreground ml-2">Quote ID:</span>
+                    <CopyButton value={entry.quote.quoteId}>
+                      {trimStringWithEllipsis(entry.quote.quoteId, 6)}
+                    </CopyButton>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

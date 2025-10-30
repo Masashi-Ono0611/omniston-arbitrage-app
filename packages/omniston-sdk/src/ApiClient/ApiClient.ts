@@ -158,7 +158,9 @@ export class ApiClient implements IApiClient {
     if (result) return result;
     result = new Map();
     this.serverAndClient.addMethod(method, (payload: StreamPayload) => {
-      const consumer = result.get(payload.subscription);
+      // Always get the latest map, not the closure-captured one
+      const consumerMap = this.streamConsumers.get(method);
+      const consumer = consumerMap?.get(payload.subscription);
       if ("error" in payload) {
         const payloadError = payload.error;
 
@@ -175,6 +177,7 @@ export class ApiClient implements IApiClient {
         consumer?.(undefined, payload.result);
       }
     });
+    this.streamConsumers.set(method, result);
     return result;
   }
 }

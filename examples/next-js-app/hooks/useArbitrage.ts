@@ -32,6 +32,7 @@ export const useArbitrage = () => {
     lastUpdate: 0,
     status: "idle",
     error: null,
+    history: [],
   });
   const [reverseStream, setReverseStream] = useState<QuoteStreamState>({
     quote: null,
@@ -39,6 +40,7 @@ export const useArbitrage = () => {
     lastUpdate: 0,
     status: "idle",
     error: null,
+    history: [],
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -62,21 +64,53 @@ export const useArbitrage = () => {
         setStatus("error");
       });
 
-      scannerRef.current.onQuoteUpdate((direction, quote) => {
+      scannerRef.current.onQuoteUpdate((direction, quote, rfqId, receivedAt) => {
         if (direction === "forward") {
-          setForwardStream((prev) => ({
-            ...prev,
-            quote,
-            lastUpdate: Date.now(),
-            status: "active",
-          }));
+          setForwardStream((prev) => {
+            // Add to history (like sample's SET_SWAP_QUOTE)
+            const newHistory = [
+              ...prev.history,
+              {
+                quote,
+                rfqId,
+                receivedAt,
+                resolverName: quote.resolverName,
+              },
+            ].slice(-20); // Keep last 20
+
+            // Force new object reference (like sample)
+            return {
+              quote,
+              rfqId,
+              lastUpdate: receivedAt,
+              status: "active" as const,
+              error: null,
+              history: newHistory,
+            };
+          });
         } else {
-          setReverseStream((prev) => ({
-            ...prev,
-            quote,
-            lastUpdate: Date.now(),
-            status: "active",
-          }));
+          setReverseStream((prev) => {
+            // Add to history (like sample's SET_SWAP_QUOTE)
+            const newHistory = [
+              ...prev.history,
+              {
+                quote,
+                rfqId,
+                receivedAt,
+                resolverName: quote.resolverName,
+              },
+            ].slice(-20); // Keep last 20
+
+            // Force new object reference (like sample)
+            return {
+              quote,
+              rfqId,
+              lastUpdate: receivedAt,
+              status: "active" as const,
+              error: null,
+              history: newHistory,
+            };
+          });
         }
       });
     }
@@ -138,6 +172,7 @@ export const useArbitrage = () => {
         lastUpdate: 0,
         status: "idle",
         error: null,
+        history: [],
       });
       setReverseStream({
         quote: null,
@@ -145,6 +180,7 @@ export const useArbitrage = () => {
         lastUpdate: 0,
         status: "idle",
         error: null,
+        history: [],
       });
       logger.info("Arbitrage scanning stopped");
     }

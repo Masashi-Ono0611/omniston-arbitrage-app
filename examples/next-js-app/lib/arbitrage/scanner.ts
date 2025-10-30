@@ -46,6 +46,7 @@ export class ArbitrageScanner {
     lastUpdate: 0,
     status: "idle",
     error: null,
+    history: [],
   };
   
   private reverseStream: QuoteStreamState = {
@@ -54,6 +55,7 @@ export class ArbitrageScanner {
     lastUpdate: 0,
     status: "idle",
     error: null,
+    history: [],
   };
   
   // Subscriptions
@@ -66,6 +68,8 @@ export class ArbitrageScanner {
   private onQuoteUpdateCallback?: (
     direction: "forward" | "reverse",
     quote: Quote,
+    rfqId: string,
+    receivedAt: number,
   ) => void;
 
   constructor(
@@ -141,7 +145,12 @@ export class ArbitrageScanner {
    * Set callback for quote updates
    */
   onQuoteUpdate(
-    callback: (direction: "forward" | "reverse", quote: Quote) => void,
+    callback: (
+      direction: "forward" | "reverse",
+      quote: Quote,
+      rfqId: string,
+      receivedAt: number,
+    ) => void,
   ): void {
     this.onQuoteUpdateCallback = callback;
   }
@@ -277,13 +286,16 @@ export class ArbitrageScanner {
    */
   private handleForwardQuoteEvent(event: QuoteResponseEvent): void {
     if (event.type === "quoteUpdated") {
+      const receivedAt = Date.now();
+      
+      // Update internal state
       this.forwardStream.quote = event.quote;
       this.forwardStream.rfqId = event.rfqId;
-      this.forwardStream.lastUpdate = Date.now();
+      this.forwardStream.lastUpdate = receivedAt;
       this.forwardStream.status = "active";
 
-      // Notify quote update
-      this.onQuoteUpdateCallback?.("forward", event.quote);
+      // Notify quote update (hook will manage history)
+      this.onQuoteUpdateCallback?.("forward", event.quote, event.rfqId, receivedAt);
 
       // Check for arbitrage opportunity
       this.checkArbitrageOpportunity();
@@ -297,13 +309,16 @@ export class ArbitrageScanner {
    */
   private handleReverseQuoteEvent(event: QuoteResponseEvent): void {
     if (event.type === "quoteUpdated") {
+      const receivedAt = Date.now();
+      
+      // Update internal state
       this.reverseStream.quote = event.quote;
       this.reverseStream.rfqId = event.rfqId;
-      this.reverseStream.lastUpdate = Date.now();
+      this.reverseStream.lastUpdate = receivedAt;
       this.reverseStream.status = "active";
 
-      // Notify quote update
-      this.onQuoteUpdateCallback?.("reverse", event.quote);
+      // Notify quote update (hook will manage history)
+      this.onQuoteUpdateCallback?.("reverse", event.quote, event.rfqId, receivedAt);
 
       // Check for arbitrage opportunity
       this.checkArbitrageOpportunity();
@@ -392,6 +407,7 @@ export class ArbitrageScanner {
       lastUpdate: 0,
       status: "idle",
       error: null,
+      history: [],
     };
 
     this.reverseStream = {
@@ -400,6 +416,7 @@ export class ArbitrageScanner {
       lastUpdate: 0,
       status: "idle",
       error: null,
+      history: [],
     };
   }
 }

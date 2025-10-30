@@ -4,7 +4,7 @@ import { Loader2, Play, Square } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { DEFAULT_SCAN_AMOUNT, TOKEN_ADDRESSES } from "@/lib/arbitrage/constants";
+import { TOKEN_ADDRESSES } from "@/lib/arbitrage/constants";
 import type { ScannerStatus } from "@/lib/arbitrage/types";
 
 interface ScannerControlProps {

@@ -42,6 +42,16 @@ export interface ArbitrageScannerConfig {
 export type ScannerStatus = "idle" | "initializing" | "scanning" | "error";
 
 /**
+ * Quote history entry
+ */
+export interface QuoteHistoryEntry {
+  quote: Quote;
+  rfqId: string;
+  receivedAt: number;
+  resolverName?: string;
+}
+
+/**
  * Quote stream state
  */
 export interface QuoteStreamState {
@@ -50,4 +60,5 @@ export interface QuoteStreamState {
   lastUpdate: number;
   status: "idle" | "loading" | "active" | "error";
   error: string | null;
+  history: QuoteHistoryEntry[];
 }
