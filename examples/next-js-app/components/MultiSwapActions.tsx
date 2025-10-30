@@ -8,9 +8,13 @@ import { useMultiSwapRfq } from "@/hooks/useMultiSwapRfq";
 import { validateSwapsForQuote } from "@/lib/validators";
 import { useMultiSwap } from "@/providers/multi-swap";
 
-export const MultiSwapActions = () => {
+export const MultiSwapActions = ({
+  rfqHook,
+}: {
+  rfqHook: ReturnType<typeof useMultiSwapRfq>;
+}) => {
   const { swaps, isQuotingAll } = useMultiSwap();
-  const { getAllQuotes, cancelQuoting } = useMultiSwapRfq();
+  const { getAllQuotes, cancelQuoting } = rfqHook;
 
   const canGetQuotes = validateSwapsForQuote(swaps);
 
