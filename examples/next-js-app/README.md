@@ -128,6 +128,35 @@ The multi-swap RFQ system uses a hybrid approach for optimal performance:
 - **Subscription cleanup**: Proper memory management
 - **Abort handling**: Graceful cancellation support
 
+### RFQ Unsubscribe Functionality
+
+The application supports manual cancellation of individual RFQ subscriptions:
+
+1. **Individual Swap Unsubscribe**
+   - Each active swap displays an "Unsubscribe" button
+   - Clicking stops quote updates for that specific swap
+   - Status changes from "Quote received & updating..." to "Quote received (RFQ stopped)"
+
+2. **State Management**
+   ```typescript
+   export type SwapItem = {
+     // ... other properties
+     isRfqActive: boolean; // Tracks if RFQ is still active
+   };
+   ```
+
+3. **Implementation Details**
+   - **Hook Centralization**: Single `useMultiSwapRfq` instance shared across components
+   - **Subscription Tracking**: Active subscriptions stored in `subscriptionsRef`
+   - **Server Communication**: Calls `v1beta7.quote.unsubscribe` method
+   - **UI Updates**: Real-time status reflection with proper state transitions
+
+4. **Usage**
+   ```typescript
+   const { unsubscribeSwap } = useMultiSwapRfq();
+   await unsubscribeSwap(swapId); // Manually stop RFQ for specific swap
+   ```
+
 ## Important Implementation Notes
 
 ### Asset Management

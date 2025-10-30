@@ -1,10 +1,17 @@
 "use client";
 
 import type { Quote, SwapSettlementParams } from "@ston-fi/omniston-sdk-react";
-import { AlertCircle, CheckCircle, ChevronDown, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  Loader2,
+  X,
+} from "lucide-react";
 import React, { memo, useState } from "react";
 
 import { AddressPreview } from "@/components/AddressPreview";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,7 +22,11 @@ import { bigNumberToFloat, trimStringWithEllipsis } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import { type SwapItem, useMultiSwap } from "@/providers/multi-swap";
 
-export const MultiSwapQuotePreview = () => {
+export const MultiSwapQuotePreview = ({
+  unsubscribeSwap,
+}: {
+  unsubscribeSwap: (swapId: string) => Promise<void>;
+}) => {
   const { swaps } = useMultiSwap();
 
   // Show swaps that are not idle (loading or success)
@@ -29,17 +40,34 @@ export const MultiSwapQuotePreview = () => {
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-medium">Quote Details</h2>
       {activeSwaps.map((swap, index) => (
-        <SwapStatusCard key={swap.id} swap={swap} index={index} />
+        <SwapStatusCard
+          key={swap.id}
+          swap={swap}
+          index={index}
+          unsubscribeSwap={unsubscribeSwap}
+        />
       ))}
     </div>
   );
 };
 
 const SwapStatusCard = memo(
-  ({ swap, index }: { swap: SwapItem; index: number }) => {
+  ({
+    swap,
+    index,
+    unsubscribeSwap,
+  }: {
+    swap: SwapItem;
+    index: number;
+    unsubscribeSwap: (swapId: string) => Promise<void>;
+  }) => {
     return (
       <div className="flex flex-col gap-2 p-4 border rounded-md bg-card">
-        <SwapHeader swap={swap} index={index} />
+        <SwapHeader
+          swap={swap}
+          index={index}
+          unsubscribeSwap={unsubscribeSwap}
+        />
         <SwapContent swap={swap} />
       </div>
     );
@@ -48,7 +76,19 @@ const SwapStatusCard = memo(
 SwapStatusCard.displayName = "SwapStatusCard";
 
 const SwapHeader = memo(
-  ({ swap, index }: { swap: SwapItem; index: number }) => {
+  ({
+    swap,
+    index,
+    unsubscribeSwap,
+  }: {
+    swap: SwapItem;
+    index: number;
+    unsubscribeSwap: (swapId: string) => Promise<void>;
+  }) => {
+    const handleUnsubscribe = () => {
+      unsubscribeSwap(swap.id);
+    };
+
     return (
       <div className="flex items-center gap-2 mb-2">
         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-medium text-sm shrink-0">
@@ -60,6 +100,17 @@ const SwapHeader = memo(
           quoteHistory={swap.quoteHistory}
           isRfqActive={swap.isRfqActive}
         />
+        {swap.isRfqActive && (
+          <Button
+            onClick={handleUnsubscribe}
+            variant="outline"
+            size="sm"
+            className="ml-auto h-6 px-2 text-xs"
+          >
+            <X size={12} className="mr-1" />
+            Unsubscribe
+          </Button>
+        )}
       </div>
     );
   },

@@ -125,11 +125,7 @@ export const useMultiSwapRfq = () => {
 
                 if (!firstQuoteReceived) {
                   firstQuoteReceived = true;
-                  // Store subscription for later cleanup
-                  subscriptionsRef.current.set(swap.id, subscription);
-                  logger.info(
-                    `[RFQ] First quote received for Swap ${swap.id}, subscription stored. Active subscriptions: ${subscriptionsRef.current.size}`,
-                  );
+                  logger.info(`[RFQ] First quote received for Swap ${swap.id}`);
                   // Resolve immediately after first quote - no waiting
                   resolve();
                 } else {
@@ -148,7 +144,6 @@ export const useMultiSwapRfq = () => {
                   payload: { id: swap.id, isActive: false },
                 });
                 subscriptionsRef.current.delete(swap.id);
-                subscription.unsubscribe();
                 if (firstQuoteReceived) {
                   resolve();
                 } else {
@@ -173,10 +168,15 @@ export const useMultiSwapRfq = () => {
                 payload: { id: swap.id, isActive: false },
               });
               subscriptionsRef.current.delete(swap.id);
-              subscription.unsubscribe();
               reject(error);
             },
           });
+
+          // Store subscription immediately for manual unsubscribe
+          subscriptionsRef.current.set(swap.id, subscription);
+          logger.info(
+            `[RFQ] Subscription stored immediately for Swap ${swap.id}, active subscriptions: ${subscriptionsRef.current.size}`,
+          );
 
           if (abortControllerRef.current) {
             abortControllerRef.current.signal.addEventListener("abort", () => {
@@ -187,7 +187,6 @@ export const useMultiSwapRfq = () => {
                 payload: { id: swap.id, isActive: false },
               });
               subscriptionsRef.current.delete(swap.id);
-              subscription.unsubscribe();
               reject(new Error("Aborted"));
             });
           }
@@ -297,9 +296,43 @@ export const useMultiSwapRfq = () => {
     };
   }, [cleanupSubscriptions]);
 
+  const unsubscribeSwap = useCallback(
+    async (swapId: string) => {
+      logger.info(`[RFQ] Attempting to unsubscribe Swap ${swapId}`);
+      logger.info(
+        `[RFQ] Current subscriptions in ref:`,
+        Array.from(subscriptionsRef.current.keys()),
+      );
+
+      const subscription = subscriptionsRef.current.get(swapId);
+      if (subscription) {
+        logger.info(`[RFQ] Manual unsubscribe for Swap ${swapId}`);
+        // Mark RFQ as inactive first
+        dispatch({
+          type: "SET_RFQ_ACTIVE",
+          payload: { id: swapId, isActive: false },
+        });
+        // Remove from ref and unsubscribe to trigger finalize()
+        subscriptionsRef.current.delete(swapId);
+        subscription.unsubscribe();
+        logger.info(
+          `[RFQ] Unsubscribed Swap ${swapId}, active subscriptions: ${subscriptionsRef.current.size}`,
+        );
+      } else {
+        logger.warn(`[RFQ] No active subscription found for Swap ${swapId}`);
+        logger.warn(
+          `[RFQ] Available swap IDs:`,
+          Array.from(subscriptionsRef.current.keys()),
+        );
+      }
+    },
+    [dispatch],
+  );
+
   return {
     getAllQuotes,
     cancelQuoting,
+    unsubscribeSwap,
     cleanupSubscriptions,
     isQuotingAll,
   };
