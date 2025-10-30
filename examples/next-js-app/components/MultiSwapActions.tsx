@@ -13,28 +13,17 @@ export const MultiSwapActions = () => {
 
   const canGetQuotes = validateSwapsForQuote(swaps);
 
-  console.log("[DEBUG] MultiSwapActions rendered", {
-    canGetQuotes,
-    isQuotingAll,
-    swapsLength: swaps.length,
-  });
-
   // Calculate progress
   const completedSwaps = swaps.filter(
     (swap) => swap.status === "success" || swap.status === "error",
   ).length;
   const loadingSwaps = swaps.filter((swap) => swap.status === "loading").length;
 
-  const handleGetQuotes = () => {
-    console.log("[DEBUG] Get All Quotes button clicked");
-    getAllQuotes();
-  };
-
   return (
     <div className="flex flex-col gap-3">
       {/* Get All Quotes Button */}
       <Button
-        onClick={handleGetQuotes}
+        onClick={getAllQuotes}
         disabled={!canGetQuotes || isQuotingAll}
         size="lg"
         className="w-full"

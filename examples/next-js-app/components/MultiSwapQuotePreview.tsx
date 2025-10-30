@@ -147,7 +147,6 @@ const QuoteDataPresenter = ({
 
   const askAsset = getAssetByAddress(quote.askAssetAddress.address);
   const bidAsset = getAssetByAddress(quote.bidAssetAddress.address);
-  // TODO: why protocolFeeAsset currently can be null?
   const protocolFeeAsset = getAssetByAddress(quote.protocolFeeAsset!.address);
 
   if (!askAsset || !bidAsset || !protocolFeeAsset) {
@@ -311,7 +310,6 @@ function SwapRouteVisualizerChunk({
 
   const { getAssetByAddress } = useAssets();
 
-  // TODO: why bidAssetAddress and askAssetAddress currently can be null?
   const bidAsset = getAssetByAddress(bidAssetAddress!.address);
   const askAsset = getAssetByAddress(askAssetAddress!.address);
 

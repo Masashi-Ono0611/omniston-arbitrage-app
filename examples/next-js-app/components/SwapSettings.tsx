@@ -13,10 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  SettlementMethod,
-  useSwapSettings,
-} from "@/providers/swap-settings";
+import { SettlementMethod, useSwapSettings } from "@/providers/swap-settings";
 
 export function SwapSettings({
   trigger = (
@@ -65,8 +62,6 @@ const ReferrerSection = () => {
           onChange={(e) => {
             const address = e.target.value || undefined;
 
-            // TODO: add validation
-
             setReferrerAddress(address);
 
             if (!address) {
@@ -87,8 +82,6 @@ const ReferrerSection = () => {
           placeholder="0-100"
           onChange={(e) => {
             const feeBps = e.target.value;
-
-            // TODO: add validation
 
             setReferrerFeeBps(feeBps ? Number.parseInt(feeBps) : undefined);
           }}

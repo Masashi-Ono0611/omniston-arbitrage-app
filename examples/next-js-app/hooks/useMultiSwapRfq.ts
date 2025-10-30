@@ -36,8 +36,6 @@ export const useMultiSwapRfq = () => {
     new Map(),
   );
 
-  logger.info("[RFQ] useMultiSwapRfq hook initialized");
-
   const getQuoteForSwap = useCallback(
     async (swap: SwapItem, retryCount = 0): Promise<void> => {
       if (!swap.bidAddress || !swap.askAddress || !swap.bidAmount) {
