@@ -2,7 +2,7 @@ import type { Quote } from "@ston-fi/omniston-sdk-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
-import { DEFAULT_TARGET_PROFIT_RATE } from "@/lib/arbitrage/constants";
+import { DEFAULT_TARGET_PROFIT_RATE, HISTORY_LIMITS } from "@/lib/arbitrage/constants";
 import type {
   ArbitrageOpportunity,
   DebugInfo,
@@ -45,7 +45,7 @@ export const useArbitrage = () => {
       scannerRef.current.onOpportunity((opportunity) => {
         logger.info("Arbitrage opportunity detected:", opportunity);
         setCurrentOpportunity(opportunity);
-        setOpportunityHistory((prev) => [opportunity, ...prev].slice(0, 50)); // Keep last 50
+        setOpportunityHistory((prev) => [opportunity, ...prev].slice(0, HISTORY_LIMITS.OPPORTUNITY_HISTORY)); // Keep last opportunities
       });
 
       scannerRef.current.onError((err) => {

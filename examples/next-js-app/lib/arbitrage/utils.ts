@@ -4,11 +4,12 @@
 
 import type { Quote } from "@ston-fi/omniston-sdk-react";
 import type { QuoteStreamState } from "./types";
+import { HISTORY_LIMITS, USDT_DECIMALS } from "./constants";
 
 /**
  * Format bigint amount to decimal string
  */
-export function formatAmount(amount: bigint, decimals: number = 6): string {
+export function formatAmount(amount: bigint, decimals: number = USDT_DECIMALS): string {
   const value = Number(amount) / 10 ** decimals;
   return value.toFixed(decimals);
 }
@@ -41,7 +42,7 @@ export function createQuoteStreamUpdater(
         receivedAt,
         resolverName: quote.resolverName,
       },
-    ].slice(-20); // Keep last 20
+    ].slice(-HISTORY_LIMITS.QUOTE_HISTORY); // Keep last quotes
 
     return {
       quote,
@@ -73,6 +74,7 @@ export function createInitialQuoteStream() {
  */
 export function calculateProfitRate(netProfit: bigint, initialAmount: bigint): number {
   if (initialAmount === 0n) return 0;
+  // Convert basis points to percentage: (profit * 10000) / amount / 100
   return Number((netProfit * 10000n) / initialAmount) / 100;
 }
 

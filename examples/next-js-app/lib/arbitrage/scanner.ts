@@ -12,6 +12,7 @@ import {
   DEFAULT_GAS_UNITS,
   DEFAULT_SLIPPAGE_BPS,
   DEFAULT_TARGET_PROFIT_RATE,
+  POLLING_INTERVAL_MS,
 } from "./constants";
 import {
   calculateArbitrageProfit,
@@ -418,12 +419,18 @@ export class ArbitrageScanner {
   }
 
   /**
-   * Wait for forward quote to arrive
+   * Wait for forward quote to arrive with timeout
    */
-  private async waitForForwardQuote(): Promise<void> {
+  private async waitForForwardQuote(timeoutMs: number = 10000): Promise<void> {
+    const startTime = Date.now();
+    
     while (!this.forwardStream.quote) {
-      // Wait 100ms before checking again
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      if (Date.now() - startTime > timeoutMs) {
+        throw new Error(`Timeout waiting for forward quote after ${timeoutMs}ms`);
+      }
+      
+      // Wait before checking again
+      await new Promise((resolve) => setTimeout(resolve, POLLING_INTERVAL_MS));
     }
   }
 

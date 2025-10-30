@@ -2,7 +2,6 @@
  * Arbitrage configuration constants
  */
 
-
 /** Default scan amount in USDT (6 decimals) - 100 USDT */
 export const DEFAULT_SCAN_AMOUNT = 100_000_000n;
 
@@ -15,11 +14,38 @@ export const DEFAULT_GAS_UNITS = 0n;
 /** Default slippage tolerance for arbitrage swaps (in basis points) */
 export const DEFAULT_SLIPPAGE_BPS = 50; // 0.5%
 
+/** Polling interval for waiting quotes (in milliseconds) */
+export const POLLING_INTERVAL_MS = 100;
+
+/** Default timeout for waiting quotes (in milliseconds) */
+export const DEFAULT_QUOTE_TIMEOUT_MS = 10000;
+
+/** History limits for streams and opportunities */
+export const HISTORY_LIMITS = {
+  /** Maximum number of quotes to keep in stream history */
+  QUOTE_HISTORY: 20,
+  /** Maximum number of opportunities to keep in history */
+  OPPORTUNITY_HISTORY: 50,
+} as const;
+
+/** Input validation limits */
+export const INPUT_LIMITS = {
+  /** Minimum scan amount */
+  MIN_SCAN_AMOUNT: 1,
+  /** Maximum slippage percentage */
+  MAX_SLIPPAGE_PERCENT: 5,
+  /** Minimum slippage percentage */
+  MIN_SLIPPAGE_PERCENT: 0.1,
+} as const;
+
 /** TON to USDT rate (6 decimals) - 2 USDT */
 export const TON_TO_USDT_RATE = 2_000_000n;
 
 /** Conversion rate from TON to nanoTON */
 export const NANO_TON_PER_TON = 1_000_000_000n; // 1 TON = 1,000,000,000 nanoTON
+
+/** Decimals for USDT and USDe tokens */
+export const USDT_DECIMALS = 6;
 
 /** TON contract addresses for arbitrage pairs */
 export const TOKEN_ADDRESSES = {
@@ -28,5 +54,3 @@ export const TOKEN_ADDRESSES = {
   /** USDe contract address on TON */
   USDE: "EQAIb6KmdfdDR7CN1GBqVJuP25iCnLKCvBlJ07Evuu2dzP5f",
 } as const;
-
-
