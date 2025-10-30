@@ -10,7 +10,6 @@ export interface DebugInfo {
   netProfit: bigint;
   profitRate: number;
   targetProfitRate: number;
-  isProfitable: boolean;
   gasCost: bigint;
   slippageCost: bigint;
   slippageBps?: number;

@@ -41,7 +41,6 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
     netProfit,
     profitRate,
     targetProfitRate,
-    isProfitable,
     gasCost,
     slippageCost,
     slippageBps,
@@ -49,6 +48,9 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
     slippageReverse,
     scanAmount,
   } = debugInfo;
+
+  // Calculate actual rate from net profit
+  const actualRate = ((Number(netProfit) / Number(scanAmount)) * 100);
 
   return (
     <div className={cn("rounded-lg border bg-gray-50 p-4 dark:bg-gray-900", className)}>
@@ -114,7 +116,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
               <div className="flex justify-between">
                 <span className="text-gray-500">Forward Rate:</span>
                 <span className="font-mono">
-                  1 USDT → {formatAmount(BigInt(forwardQuote.askUnits))} USDe
+                  {formatAmount(debugInfo.scanAmount)} USDT → {formatAmount(BigInt(forwardQuote.askUnits))} USDe
                 </span>
               </div>
               <div className="flex justify-between">
@@ -151,7 +153,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
                       : 0n;
                     const total = fwd + rev; // nanoTON
                     const totalTon = (Number(total) / 1e9).toFixed(9);
-                    return `${totalTon} TON ≒ ${formatAmount(gasCost)} USDT`;
+                    return `${totalTon} TON`;
                   })()}
                 </span>
               </div>
@@ -176,14 +178,14 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Gas Cost:</span>
+                <span className="text-gray-500">Gas Cost*:</span>
                 <span className="font-mono text-red-600">
-                  -{formatAmount(gasCost)} USDT*
+                  -{formatAmount(gasCost)} USDT
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Max Slippage Cost:</span>
-                <span className="font-mono text-orange-600">
+                <span className="font-mono text-red-600">
                   -{formatAmount(slippageCost)} USDT
                 </span>
               </div>
@@ -225,27 +227,30 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
                 <span className="text-gray-500">Actual Rate:</span>
                 <span className={cn(
                   "font-mono font-semibold",
-                  profitRate >= 0 ? "text-green-600" : "text-red-600"
+                  netProfit >= 0 ? "text-green-600" : "text-red-600"
                 )}>
-                  {profitRate > 0 ? "+" : ""}{profitRate.toFixed(3)}%
+                  {netProfit >= 0 ? "+" : ""}{actualRate.toFixed(3)}%
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Is Profitable:</span>
-                <span className={cn(
-                  "font-mono font-bold",
-                  isProfitable ? "text-green-600" : "text-red-600"
-                )}>
-                  {isProfitable ? "✓ YES" : "✗ NO"}
-                </span>
-              </div>
-              <div className="mt-2 rounded-sm bg-gray-100 p-2 dark:bg-gray-700">
-                <p className="text-gray-600 dark:text-gray-400">
-                  {profitRate >= targetProfitRate 
-                    ? `✓ Actual rate (${profitRate.toFixed(3)}%) ≥ Target (${(targetProfitRate * 100).toFixed(1)}%)`
-                    : `✗ Actual rate (${profitRate.toFixed(3)}%) < Target (${(targetProfitRate * 100).toFixed(1)}%)`
-                  }
-                </p>
+                            <div className="mt-2 rounded-sm bg-gray-100 p-2 dark:bg-gray-700">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">
+                    {actualRate >= (targetProfitRate * 100) ? (
+                      <span className="flex items-center gap-1">
+                        <span className="text-green-600">●</span>
+                        Target Achieved
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        <span className="text-red-600">●</span>
+                        Below Target
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-mono text-sm">
+                    {actualRate.toFixed(3)}% / {((targetProfitRate * 100)).toFixed(1)}%
+                  </span>
+                </div>
               </div>
             </div>
           </div>

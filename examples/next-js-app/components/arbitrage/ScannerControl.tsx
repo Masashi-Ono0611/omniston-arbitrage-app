@@ -4,7 +4,7 @@ import { Loader2, Play, Square } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { TOKEN_ADDRESSES } from "@/lib/arbitrage/constants";
+import { DEFAULT_TARGET_PROFIT_RATE, TOKEN_ADDRESSES } from "@/lib/arbitrage/constants";
 import type { ScannerStatus } from "@/lib/arbitrage/types";
 
 interface ScannerControlProps {
@@ -26,7 +26,7 @@ export function ScannerControl({
 }: ScannerControlProps) {
   const [scanAmount, setScanAmount] = useState<string>("100");
   const [slippagePercent, setSlippagePercent] = useState<string>("0.5");
-  const [minProfitRate, setMinProfitRate] = useState<string>("0.1");
+  const [minProfitRate, setMinProfitRate] = useState<string>((DEFAULT_TARGET_PROFIT_RATE * 100).toString());
   const [isStarting, setIsStarting] = useState(false);
 
   const isScanning = status === "scanning" || status === "initializing";

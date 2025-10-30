@@ -2,11 +2,12 @@
  * Arbitrage configuration constants
  */
 
-/** Minimum profit rate threshold (%) for arbitrage opportunities */
-export const MIN_PROFIT_RATE = 0.001; // 0.1%
 
 /** Default scan amount in USDT (6 decimals) - 100 USDT */
 export const DEFAULT_SCAN_AMOUNT = 100_000_000n;
+
+/** Default target profit rate for arbitrage detection - 0.1% */
+export const DEFAULT_TARGET_PROFIT_RATE = 0.001;
 
 /** Default gas units for transactions in nanoTON - fallback and estimate */
 export const DEFAULT_GAS_UNITS = 0n;

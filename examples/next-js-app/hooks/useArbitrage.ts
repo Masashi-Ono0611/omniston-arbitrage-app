@@ -2,6 +2,7 @@ import type { Quote } from "@ston-fi/omniston-sdk-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useOmniston } from "@/hooks/useOmniston";
+import { DEFAULT_TARGET_PROFIT_RATE } from "@/lib/arbitrage/constants";
 import type {
   ArbitrageOpportunity,
   DebugInfo,
@@ -25,7 +26,7 @@ export const useArbitrage = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentOpportunity, setCurrentOpportunity] = useState<ArbitrageOpportunity | null>(null);
   const [opportunityHistory, setOpportunityHistory] = useState<ArbitrageOpportunity[]>([]);
-  const [currentMinProfitRate, setCurrentMinProfitRate] = useState<number>(0.001); // Default 0.1%
+  const [currentMinProfitRate, setCurrentMinProfitRate] = useState<number>(DEFAULT_TARGET_PROFIT_RATE);
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [forwardStream, setForwardStream] = useState<QuoteStreamState>({
     quote: null,

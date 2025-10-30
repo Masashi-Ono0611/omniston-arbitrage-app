@@ -11,7 +11,7 @@ import {
 import {
   DEFAULT_GAS_UNITS,
   DEFAULT_SLIPPAGE_BPS,
-  MIN_PROFIT_RATE,
+  DEFAULT_TARGET_PROFIT_RATE,
 } from "./constants";
 import {
   calculateArbitrageProfit,
@@ -83,7 +83,7 @@ export class ArbitrageScanner {
   ) {
     this.omniston = omniston;
     this.config = {
-      minProfitRate: config?.minProfitRate ?? MIN_PROFIT_RATE,
+      minProfitRate: config?.minProfitRate ?? DEFAULT_TARGET_PROFIT_RATE,
       scanAmount: config?.scanAmount ?? 0n,
       estimatedGasCost: config?.estimatedGasCost ?? DEFAULT_GAS_UNITS,
     };
@@ -392,7 +392,6 @@ export class ArbitrageScanner {
       netProfit,
       profitRate,
       targetProfitRate: this.currentMinProfitRate,
-      isProfitable: profitable,
       gasCost: actualGasCost,
       slippageCost,
       slippageBps: this.currentSlippageBps,
