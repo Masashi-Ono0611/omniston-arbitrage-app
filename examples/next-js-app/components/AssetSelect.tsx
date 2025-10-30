@@ -24,7 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { bigNumberToFloat, cn, trimStringWithEllipsis } from "@/lib/utils";
 import type { AssetMetadata } from "@/models/asset";
 import { useAssets } from "@/providers/assets";
-import { assetQueryFactory } from "@/quries/assets";
+import { assetQueryFactory } from "@/queries/assets";
 import { AddressPreview } from "./AddressPreview";
 
 type AssetSelectProps = {
