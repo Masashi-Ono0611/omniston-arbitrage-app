@@ -36,6 +36,8 @@ export const useMultiSwapRfq = () => {
     new Map(),
   );
 
+  logger.info("[RFQ] useMultiSwapRfq hook initialized");
+
   const getQuoteForSwap = useCallback(
     async (swap: SwapItem, retryCount = 0): Promise<void> => {
       if (!swap.bidAddress || !swap.askAddress || !swap.bidAmount) {
@@ -82,18 +84,33 @@ export const useMultiSwapRfq = () => {
       };
 
       try {
+        logger.info(`[RFQ] Starting quote request for Swap ${swap.id}`);
         dispatch({
           type: "SET_SWAP_STATUS",
           payload: { id: swap.id, status: "loading", error: null },
         });
 
         const observable = await omniston.requestForQuote(quoteRequest);
+        console.log(
+          `🎯 [RFQ] Observable created for Swap ${swap.id}`,
+          observable,
+        );
 
         return new Promise((resolve, reject) => {
           let firstQuoteReceived = false;
 
+          console.log(`🔌 [RFQ] About to subscribe for Swap ${swap.id}`);
           const subscription = observable.subscribe({
             next: (event: QuoteResponseEvent) => {
+              console.log(`🔔 [RFQ] Event received for Swap ${swap.id}:`, {
+                type: event.type,
+                rfqId: event.rfqId,
+                quoteId:
+                  event.type === "quoteUpdated"
+                    ? event.quote.quoteId
+                    : undefined,
+              });
+
               if (event.type === "quoteUpdated") {
                 // Update state with the new quote
                 dispatch({
@@ -102,6 +119,7 @@ export const useMultiSwapRfq = () => {
                     id: swap.id,
                     quote: event.quote,
                     rfqId: event.rfqId,
+                    receivedAt: Date.now(),
                   },
                 });
 
@@ -109,11 +127,25 @@ export const useMultiSwapRfq = () => {
                   firstQuoteReceived = true;
                   // Store subscription for later cleanup
                   subscriptionsRef.current.set(swap.id, subscription);
+                  console.log(
+                    `🎉 [RFQ] First quote received for Swap ${swap.id}, subscription stored. Active subscriptions: ${subscriptionsRef.current.size}`,
+                  );
+                  console.log(
+                    `📋 [RFQ] Current subscriptions:`,
+                    Array.from(subscriptionsRef.current.keys()),
+                  );
                   // Resolve immediately after first quote - no waiting
                   resolve();
+                } else {
+                  console.log(
+                    `✅ [RFQ] Quote updated for Swap ${swap.id} (Quote ID: ${event.quote.quoteId})`,
+                  );
                 }
                 // Subscription stays active - quotes will continue to update
               } else if (event.type === "unsubscribed") {
+                logger.warn(
+                  `[RFQ] Unsubscribed event received for Swap ${swap.id}`,
+                );
                 subscriptionsRef.current.delete(swap.id);
                 subscription.unsubscribe();
                 if (firstQuoteReceived) {
@@ -121,9 +153,19 @@ export const useMultiSwapRfq = () => {
                 } else {
                   reject(new Error("Quote request timed out"));
                 }
+              } else if (event.type === "ack") {
+                logger.info(
+                  `[RFQ] ACK received for Swap ${swap.id}, RFQ ID: ${event.rfqId}`,
+                );
+              } else if (event.type === "noQuote") {
+                logger.warn(`[RFQ] No quote available for Swap ${swap.id}`);
               }
             },
             error: (error: unknown) => {
+              logger.error(
+                `[RFQ] Error in subscription for Swap ${swap.id}:`,
+                error,
+              );
               subscriptionsRef.current.delete(swap.id);
               subscription.unsubscribe();
               reject(error);
@@ -132,20 +174,31 @@ export const useMultiSwapRfq = () => {
 
           if (abortControllerRef.current) {
             abortControllerRef.current.signal.addEventListener("abort", () => {
+              logger.warn(`[RFQ] Abort signal received for Swap ${swap.id}`);
               subscriptionsRef.current.delete(swap.id);
               subscription.unsubscribe();
               reject(new Error("Aborted"));
             });
           }
+
+          console.log(
+            `✅ [RFQ] Subscription started for Swap ${swap.id}`,
+            subscription,
+          );
         });
       } catch (error) {
+        logger.error(`[RFQ] Exception caught for Swap ${swap.id}:`, error);
         if (retryCount < RETRY_CONFIG.MAX_ATTEMPTS) {
+          logger.info(
+            `[RFQ] Retrying Swap ${swap.id} (attempt ${retryCount + 1}/${RETRY_CONFIG.MAX_ATTEMPTS})`,
+          );
           await new Promise((resolve) =>
             setTimeout(resolve, RETRY_CONFIG.DELAY_MS),
           );
           return getQuoteForSwap(swap, retryCount + 1);
         }
 
+        logger.error(`[RFQ] Max retry attempts reached for Swap ${swap.id}`);
         dispatch({
           type: "SET_SWAP_STATUS",
           payload: { id: swap.id, status: "error", error: formatError(error) },
@@ -167,33 +220,48 @@ export const useMultiSwapRfq = () => {
   const getAllQuotes = useCallback(async () => {
     if (isQuotingAll) return;
 
+    logger.info(`[RFQ] Starting getAllQuotes for ${swaps.length} swaps`);
     // Clean up any existing subscriptions first
+    const existingCount = subscriptionsRef.current.size;
     subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
     subscriptionsRef.current.clear();
+    if (existingCount > 0) {
+      logger.info(`[RFQ] Cleaned up ${existingCount} existing subscriptions`);
+    }
 
     abortControllerRef.current = new AbortController();
     dispatch({ type: "START_QUOTING_ALL" });
 
     try {
-      // Execute all RFQ requests in parallel
-      // But keep subscriptions alive for continuous parallel updates
-      const quotePromises = swaps.map((swap) => {
+      // Execute RFQ requests sequentially (wait for first quote of each)
+      // But keep subscriptions alive for continuous background updates
+      for (const swap of swaps) {
         if (abortControllerRef.current?.signal.aborted) {
-          return Promise.reject(new Error("Aborted"));
+          logger.warn(`[RFQ] getAllQuotes aborted`);
+          break;
         }
-        // Wrap in promise to catch individual errors without failing others
-        return getQuoteForSwap(swap).catch((error) => {
-          logger.error(`Failed to get quote for swap ${swap.id}:`, error);
-          // Return null to indicate failure but don't throw
-          return null;
-        });
-      });
 
-      // Wait for all quotes to complete (success or failure)
-      await Promise.all(quotePromises);
+        logger.info(
+          `[RFQ] Processing Swap ${swap.id} (${swaps.indexOf(swap) + 1}/${swaps.length})`,
+        );
+        try {
+          // Wait for first quote, then move to next swap
+          // Subscription stays active for continuous updates
+          await getQuoteForSwap(swap);
+          logger.info(
+            `[RFQ] Swap ${swap.id} first quote received, moving to next. Active subscriptions: ${subscriptionsRef.current.size}`,
+          );
+        } catch (error) {
+          logger.error(`[RFQ] Failed to get quote for swap ${swap.id}:`, error);
+          // Continue to next swap even if this one fails
+        }
+      }
     } catch (error) {
-      logger.error("Failed to get all quotes:", error);
+      logger.error("[RFQ] Failed to get all quotes:", error);
     } finally {
+      logger.info(
+        `[RFQ] getAllQuotes finished. Final active subscriptions: ${subscriptionsRef.current.size}`,
+      );
       dispatch({ type: "FINISH_QUOTING_ALL" });
       abortControllerRef.current = null;
     }
@@ -206,6 +274,10 @@ export const useMultiSwapRfq = () => {
   }, []);
 
   const cleanupSubscriptions = useCallback(() => {
+    const count = subscriptionsRef.current.size;
+    if (count > 0) {
+      logger.info(`[RFQ] Cleaning up ${count} subscriptions`);
+    }
     subscriptionsRef.current.forEach((sub) => sub.unsubscribe());
     subscriptionsRef.current.clear();
   }, []);

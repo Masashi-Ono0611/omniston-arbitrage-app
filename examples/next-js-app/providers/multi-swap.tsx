@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import { SWAP_CONFIG } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 export const DEFAULT_SLIPPAGE = 0.05;
 
@@ -24,6 +25,11 @@ export type SwapItem = {
   rfqId: string | null;
   status: "idle" | "loading" | "success" | "error";
   error: string | null;
+  quoteHistory: {
+    quoteId: string;
+    receivedAt: number;
+    resolverName?: string;
+  }[];
 };
 
 type MultiSwapState = {
@@ -42,6 +48,7 @@ const createEmptySwap = (): SwapItem => ({
   rfqId: null,
   status: "idle",
   error: null,
+  quoteHistory: [],
 });
 
 const initialState: MultiSwapState = {
@@ -58,7 +65,7 @@ type MultiSwapAction =
     }
   | {
       type: "SET_SWAP_QUOTE";
-      payload: { id: string; quote: Quote; rfqId: string };
+      payload: { id: string; quote: Quote; rfqId: string; receivedAt: number };
     }
   | {
       type: "SET_SWAP_STATUS";
@@ -106,21 +113,42 @@ const multiSwapReducer = (
         ),
       };
 
-    case "SET_SWAP_QUOTE":
-      return {
-        ...state,
-        swaps: state.swaps.map((swap) =>
+    case "SET_SWAP_QUOTE": {
+      // Force new object references for ALL swaps to ensure React detects changes
+      const nextSwaps: SwapItem[] = state.swaps.map(
+        (swap) =>
           swap.id === action.payload.id
             ? {
                 ...swap,
                 quote: action.payload.quote,
                 rfqId: action.payload.rfqId,
-                status: "success",
+                status: "success" as const,
                 error: null,
+                quoteHistory: [
+                  ...swap.quoteHistory,
+                  {
+                    quoteId: action.payload.quote.quoteId,
+                    receivedAt: action.payload.receivedAt,
+                    resolverName: action.payload.quote.resolverName,
+                  },
+                ],
               }
-            : swap,
-        ),
+            : { ...swap }, // Force new reference even for unchanged swaps
+      );
+      const h = action.payload.quote.quoteId;
+      console.log(
+        `📦 [STORE] SET_SWAP_QUOTE id=${action.payload.id} quoteId=${h} history_len=${
+          nextSwaps.find((s) => s.id === action.payload.id)?.quoteHistory
+            .length ?? 0
+        }`,
+      );
+      const nextState = {
+        ...state,
+        swaps: nextSwaps,
       };
+      console.log("📦 [STORE] Returning new state", nextState);
+      return nextState;
+    }
 
     case "SET_SWAP_STATUS":
       return {
@@ -146,6 +174,7 @@ const multiSwapReducer = (
           error: null,
           quote: null,
           rfqId: null,
+          quoteHistory: [],
         })),
       };
 
@@ -160,7 +189,14 @@ const multiSwapReducer = (
         ...state,
         swaps: state.swaps.map((swap) =>
           swap.id === action.payload
-            ? { ...swap, quote: null, rfqId: null, status: "idle", error: null }
+            ? {
+                ...swap,
+                quote: null,
+                rfqId: null,
+                status: "idle",
+                error: null,
+                quoteHistory: [],
+              }
             : swap,
         ),
       };
@@ -172,6 +208,14 @@ const multiSwapReducer = (
 
 export const MultiSwapProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(multiSwapReducer, initialState);
+
+  console.info("[PROVIDER] State updated", {
+    swapsCount: state.swaps.length,
+    histories: state.swaps.map((s) => ({
+      id: s.id,
+      len: s.quoteHistory.length,
+    })),
+  });
 
   return (
     <MultiSwapContext.Provider value={state}>

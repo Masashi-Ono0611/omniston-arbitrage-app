@@ -1,8 +1,8 @@
 "use client";
 
 import type { Quote, SwapSettlementParams } from "@ston-fi/omniston-sdk-react";
-import { ChevronDown } from "lucide-react";
-import React, { useState } from "react";
+import { CheckCircle, ChevronDown, Loader2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
 
 import { AddressPreview } from "@/components/AddressPreview";
 import {
@@ -14,25 +14,30 @@ import { Copy } from "@/components/ui/copy";
 import { isSwapWithQuote } from "@/lib/type-guards";
 import { bigNumberToFloat, trimStringWithEllipsis } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
-import { useMultiSwap } from "@/providers/multi-swap";
+import { type SwapItem, useMultiSwap } from "@/providers/multi-swap";
 
 export const MultiSwapQuotePreview = () => {
   const { swaps } = useMultiSwap();
 
-  const swapsWithQuotes = swaps.filter(isSwapWithQuote);
+  console.info(
+    "[PREVIEW] swaps updated",
+    swaps.map((s) => ({ id: s.id, historyLen: s.quoteHistory.length })),
+  );
 
-  if (swapsWithQuotes.length === 0) {
+  // Show swaps that are not idle (loading or success)
+  const activeSwaps = swaps.filter((swap) => swap.status !== "idle");
+
+  if (activeSwaps.length === 0) {
     return null;
   }
 
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-medium">Quote Details</h2>
-      {swapsWithQuotes.map((swap, index) => (
-        <QuotePreviewCard
-          key={swap.id}
-          quote={swap.quote}
-          rfqId={swap.rfqId}
+      {activeSwaps.map((swap, index) => (
+        <SwapStatusCard
+          key={`${swap.id}-${swap.quoteHistory.length}`}
+          swap={swap}
           index={index}
         />
       ))}
@@ -40,26 +45,117 @@ export const MultiSwapQuotePreview = () => {
   );
 };
 
-const QuotePreviewCard = ({
-  quote,
-  rfqId,
-  index,
-}: {
-  quote: Quote;
-  rfqId: string;
-  index: number;
-}) => {
+const SwapStatusCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
+  useEffect(() => {
+    console.info(
+      "[UI] Swap",
+      swap.id,
+      "history_len",
+      swap.quoteHistory.length,
+      "swap_ref",
+      swap,
+    );
+  }, [swap.id, swap.quoteHistory, swap]);
+
   return (
     <div className="flex flex-col gap-2 p-4 border rounded-md bg-card">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-medium text-sm shrink-0">
-          {index + 1}
-        </div>
-        <h3 className="font-medium">Swap {index + 1}</h3>
+      <SwapHeader swap={swap} index={index} />
+      <SwapContent swap={swap} />
+    </div>
+  );
+};
+
+const SwapHeader = ({ swap, index }: { swap: SwapItem; index: number }) => {
+  return (
+    <div className="flex items-center gap-2 mb-2">
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-medium text-sm shrink-0">
+        {index + 1}
       </div>
-      <QuoteDataPresenter quote={quote} rfqId={rfqId} />
-      <hr />
-      <QuoteRouteVisualizer {...quote} />
+      <h3 className="font-medium">Swap {index + 1}</h3>
+      <span className="text-xs text-muted-foreground">
+        History: {swap.quoteHistory.length}
+      </span>
+      <StatusBadge status={swap.status} />
+    </div>
+  );
+};
+
+const StatusBadge = ({ status }: { status: SwapItem["status"] }) => {
+  if (status === "loading") {
+    return (
+      <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 ml-auto">
+        <Loader2 className="animate-spin" size={14} />
+        <span className="text-xs font-medium">Getting quote...</span>
+      </div>
+    );
+  }
+
+  if (status === "success") {
+    return (
+      <div className="flex items-center gap-1 text-green-600 dark:text-green-400 ml-auto">
+        <CheckCircle size={14} />
+        <span className="text-xs font-medium">Quote received</span>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+const SwapContent = ({ swap }: { swap: SwapItem }) => {
+  if (swap.status === "loading") {
+    return (
+      <div className="text-sm text-muted-foreground py-4 text-center">
+        Waiting for quote response...
+      </div>
+    );
+  }
+
+  if (swap.status === "success" && swap.quote && swap.rfqId) {
+    return (
+      <>
+        <QuoteDataPresenter quote={swap.quote} rfqId={swap.rfqId} />
+        <hr />
+        <QuoteRouteVisualizer {...swap.quote} />
+        <hr />
+        <QuoteHistoryList history={swap.quoteHistory} />
+      </>
+    );
+  }
+
+  return null;
+};
+
+const QuoteHistoryList = ({
+  history,
+}: {
+  history: { quoteId: string; receivedAt: number; resolverName?: string }[];
+}) => {
+  if (!history || history.length === 0) return null;
+
+  return (
+    <div className="mt-2">
+      <h4 className="text-sm font-medium mb-2">Quote updates</h4>
+      <ul className="space-y-1 text-sm">
+        {history.map((h, i) => (
+          <li
+            key={`${h.quoteId}-${h.receivedAt}`}
+            className="flex items-center gap-2"
+          >
+            <span className="text-muted-foreground">{i + 1}.</span>
+            <span className="text-muted-foreground">
+              {new Date(h.receivedAt).toLocaleTimeString()}
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="text-muted-foreground">Resolver:</span>
+            <span>{h.resolverName ?? "N/A"}</span>
+            <span className="text-muted-foreground ml-2">Quote ID:</span>
+            <Copy value={h.quoteId}>
+              {trimStringWithEllipsis(h.quoteId, 6)}
+            </Copy>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
