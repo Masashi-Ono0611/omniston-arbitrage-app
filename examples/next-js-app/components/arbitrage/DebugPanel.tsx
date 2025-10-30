@@ -4,7 +4,7 @@ import { Calculator } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { DebugInfo } from "@/lib/arbitrage/types";
-import { formatAmount } from "@/lib/arbitrage/utils";
+import { formatAmount, calculateTotalGasCost, formatGasAmount } from "@/lib/arbitrage/utils";
 
 interface DebugPanelProps {
   debugInfo: DebugInfo | null;
@@ -43,7 +43,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
     scanAmount,
   } = debugInfo;
 
-  // Calculate actual rate from net profit
+  const hasBothQuotes = forwardQuote && reverseQuote;
   const actualRate = ((Number(netProfit) / Number(scanAmount)) * 100);
 
   return (
@@ -101,7 +101,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
         </div>
 
         {/* Quote Details */}
-        {forwardQuote && reverseQuote && (
+        {hasBothQuotes && (
           <div className="rounded-md bg-white p-2 dark:bg-gray-800">
             <p className="mb-1 font-semibold text-gray-600 dark:text-gray-400">
               Quote Details
@@ -138,17 +138,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
               <div className="flex justify-between">
                 <span className="text-gray-500">Total Gas:</span>
                 <span className="font-mono text-xs">
-                  {(() => {
-                    const fwd = forwardQuote.estimatedGasConsumption && forwardQuote.estimatedGasConsumption !== ""
-                      ? BigInt(forwardQuote.estimatedGasConsumption)
-                      : 0n;
-                    const rev = reverseQuote.estimatedGasConsumption && reverseQuote.estimatedGasConsumption !== ""
-                      ? BigInt(reverseQuote.estimatedGasConsumption)
-                      : 0n;
-                    const total = fwd + rev; // nanoTON
-                    const totalTon = (Number(total) / 1e9).toFixed(9);
-                    return `${totalTon} TON`;
-                  })()}
+                  {formatGasAmount(calculateTotalGasCost(forwardQuote, reverseQuote))} TON
                 </span>
               </div>
             </div>
@@ -156,7 +146,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
         )}
 
         {/* Profit Calculation */}
-        {forwardQuote && reverseQuote && (
+        {hasBothQuotes && (
           <div className="rounded-md bg-white p-2 dark:bg-gray-800">
             <p className="mb-1 font-semibold text-gray-600 dark:text-gray-400">
               Profit Calculation
@@ -211,7 +201,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
         )}
 
         {/* Final Result */}
-        {forwardQuote && reverseQuote && (
+        {hasBothQuotes && (
           <div className="rounded-md bg-white p-2 dark:bg-gray-800">
             <p className="mb-1 font-semibold text-gray-600 dark:text-gray-400">
               Final Result

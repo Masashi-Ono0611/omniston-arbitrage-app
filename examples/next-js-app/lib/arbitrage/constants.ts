@@ -17,9 +17,6 @@ export const DEFAULT_SLIPPAGE_BPS = 50; // 0.5%
 /** Polling interval for waiting quotes (in milliseconds) */
 export const POLLING_INTERVAL_MS = 100;
 
-/** Default timeout for waiting quotes (in milliseconds) */
-export const DEFAULT_QUOTE_TIMEOUT_MS = 10000;
-
 /** History limits for streams and opportunities */
 export const HISTORY_LIMITS = {
   /** Maximum number of quotes to keep in stream history */

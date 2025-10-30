@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_TARGET_PROFIT_RATE, TOKEN_ADDRESSES, INPUT_LIMITS, USDT_DECIMALS } from "@/lib/arbitrage/constants";
 import type { ScannerStatus } from "@/lib/arbitrage/types";
-import { validateArbitrageParams } from "@/lib/arbitrage/utils";
+import { formatError } from "@/lib/arbitrage/utils";
 
 interface ScannerControlProps {
   status: ScannerStatus;
@@ -25,29 +25,25 @@ export function ScannerControl({
   onStart,
   onStop,
 }: ScannerControlProps) {
-  const [scanAmount, setScanAmount] = useState<string>("100");
-  const [slippagePercent, setSlippagePercent] = useState<string>("0.5");
-  const [minProfitRate, setMinProfitRate] = useState<string>((DEFAULT_TARGET_PROFIT_RATE * 100).toString());
+  const [scanAmount, setScanAmount] = useState<number>(100);
+  const [slippagePercent, setSlippagePercent] = useState<number>(0.5);
+  const [minProfitRate, setMinProfitRate] = useState<number>(DEFAULT_TARGET_PROFIT_RATE * 100);
   const [isStarting, setIsStarting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const isScanning = status === "scanning" || status === "initializing";
 
   const validateInputs = (): string | null => {
-    const amount = Number(scanAmount);
-    const slippage = Number(slippagePercent);
-    const profitRate = Number(minProfitRate);
-    
-    if (isNaN(amount) || amount < INPUT_LIMITS.MIN_SCAN_AMOUNT) {
+    if (isNaN(scanAmount) || scanAmount < INPUT_LIMITS.MIN_SCAN_AMOUNT) {
       return `Scan amount must be at least ${INPUT_LIMITS.MIN_SCAN_AMOUNT}`;
     }
     
-    if (isNaN(slippage) || slippage < INPUT_LIMITS.MIN_SLIPPAGE_PERCENT || slippage > INPUT_LIMITS.MAX_SLIPPAGE_PERCENT) {
+    if (isNaN(slippagePercent) || slippagePercent < INPUT_LIMITS.MIN_SLIPPAGE_PERCENT || slippagePercent > INPUT_LIMITS.MAX_SLIPPAGE_PERCENT) {
       return `Slippage must be between ${INPUT_LIMITS.MIN_SLIPPAGE_PERCENT}% and ${INPUT_LIMITS.MAX_SLIPPAGE_PERCENT}%`;
     }
     
-    if (isNaN(profitRate) || profitRate < 0) {
-      return "Minimum profit rate must be non-negative";
+    if (isNaN(minProfitRate) || minProfitRate < -100) {
+      return "Minimum profit rate must be -100% or higher";
     }
     
     return null;
@@ -63,26 +59,13 @@ export function ScannerControl({
     setValidationError(null);
     setIsStarting(true);
     try {
-      const amount = BigInt(Number(scanAmount) * 10 ** USDT_DECIMALS); // Convert to token decimals
-      const slippageBps = Math.round(Number(slippagePercent) * 100); // Convert percent to basis points (100 = 1%)
-      const profitRate = Number(minProfitRate) / 100; // Convert percent to decimal
-      
-      const validationError = validateArbitrageParams(
-        TOKEN_ADDRESSES.USDT,
-        TOKEN_ADDRESSES.USDE,
-        amount,
-        slippageBps,
-        profitRate
-      );
-      
-      if (validationError) {
-        setValidationError(validationError);
-        return;
-      }
+      const amount = BigInt(scanAmount * 10 ** USDT_DECIMALS);
+      const slippageBps = Math.round(slippagePercent * 100);
+      const profitRate = minProfitRate / 100;
       
       await onStart(TOKEN_ADDRESSES.USDT, TOKEN_ADDRESSES.USDE, amount, slippageBps, profitRate);
     } catch (error) {
-      setValidationError(error instanceof Error ? error.message : "Failed to start scanning");
+      setValidationError(formatError(error) || "Failed to start scanning");
     } finally {
       setIsStarting(false);
     }
@@ -116,7 +99,7 @@ export function ScannerControl({
             id="scanAmount"
             type="number"
             value={scanAmount}
-            onChange={(e) => setScanAmount(e.target.value)}
+            onChange={(e) => setScanAmount(Number(e.target.value))}
             disabled={isScanning}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             min={INPUT_LIMITS.MIN_SCAN_AMOUNT}
@@ -139,7 +122,7 @@ export function ScannerControl({
             id="slippage"
             type="number"
             value={slippagePercent}
-            onChange={(e) => setSlippagePercent(e.target.value)}
+            onChange={(e) => setSlippagePercent(Number(e.target.value))}
             disabled={isScanning}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             min={INPUT_LIMITS.MIN_SLIPPAGE_PERCENT}
@@ -163,7 +146,7 @@ export function ScannerControl({
             id="profitRate"
             type="number"
             value={minProfitRate}
-            onChange={(e) => setMinProfitRate(e.target.value)}
+            onChange={(e) => setMinProfitRate(Number(e.target.value))}
             disabled={isScanning}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             min="-5"
@@ -188,7 +171,7 @@ export function ScannerControl({
           {!isScanning ? (
             <Button
               onClick={handleStart}
-              disabled={isStarting || !scanAmount || Number(scanAmount) <= 0}
+              disabled={isStarting || !scanAmount || scanAmount <= 0}
               className="flex-1"
             >
               {isStarting ? (
