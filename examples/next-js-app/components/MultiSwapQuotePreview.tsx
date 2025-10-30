@@ -1,8 +1,8 @@
 "use client";
 
 import type { Quote, SwapSettlementParams } from "@ston-fi/omniston-sdk-react";
-import { CheckCircle, ChevronDown, Loader2 } from "lucide-react";
-import React, { useState } from "react";
+import { AlertCircle, CheckCircle, ChevronDown, Loader2 } from "lucide-react";
+import React, { memo, useState } from "react";
 
 import { AddressPreview } from "@/components/AddressPreview";
 import {
@@ -35,28 +35,34 @@ export const MultiSwapQuotePreview = () => {
   );
 };
 
-const SwapStatusCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
-  return (
-    <div className="flex flex-col gap-2 p-4 border rounded-md bg-card">
-      <SwapHeader swap={swap} index={index} />
-      <SwapContent swap={swap} />
-    </div>
-  );
-};
-
-const SwapHeader = ({ swap, index }: { swap: SwapItem; index: number }) => {
-  return (
-    <div className="flex items-center gap-2 mb-2">
-      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-medium text-sm shrink-0">
-        {index + 1}
+const SwapStatusCard = memo(
+  ({ swap, index }: { swap: SwapItem; index: number }) => {
+    return (
+      <div className="flex flex-col gap-2 p-4 border rounded-md bg-card">
+        <SwapHeader swap={swap} index={index} />
+        <SwapContent swap={swap} />
       </div>
-      <h3 className="font-medium">Swap {index + 1}</h3>
-      <StatusBadge status={swap.status} />
-    </div>
-  );
-};
+    );
+  },
+);
+SwapStatusCard.displayName = "SwapStatusCard";
 
-const StatusBadge = ({ status }: { status: SwapItem["status"] }) => {
+const SwapHeader = memo(
+  ({ swap, index }: { swap: SwapItem; index: number }) => {
+    return (
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-medium text-sm shrink-0">
+          {index + 1}
+        </div>
+        <h3 className="font-medium">Swap {index + 1}</h3>
+        <StatusBadge status={swap.status} />
+      </div>
+    );
+  },
+);
+SwapHeader.displayName = "SwapHeader";
+
+const StatusBadge = memo(({ status }: { status: SwapItem["status"] }) => {
   if (status === "loading") {
     return (
       <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 ml-auto">
@@ -75,8 +81,18 @@ const StatusBadge = ({ status }: { status: SwapItem["status"] }) => {
     );
   }
 
+  if (status === "error") {
+    return (
+      <div className="flex items-center gap-1 text-red-600 dark:text-red-400 ml-auto">
+        <AlertCircle size={14} />
+        <span className="text-xs font-medium">Error</span>
+      </div>
+    );
+  }
+
   return null;
-};
+});
+StatusBadge.displayName = "StatusBadge";
 
 const SwapContent = ({ swap }: { swap: SwapItem }) => {
   if (swap.status === "loading") {

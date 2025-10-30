@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
+import { useCallback } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useMultiSwapRfq } from "@/hooks/useMultiSwapRfq";
@@ -18,6 +19,10 @@ export const MultiSwapActions = () => {
     (swap) => swap.status === "success" || swap.status === "error",
   ).length;
   const loadingSwaps = swaps.filter((swap) => swap.status === "loading").length;
+
+  const handleCancelQuoting = useCallback(() => {
+    cancelQuoting();
+  }, [cancelQuoting]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -41,7 +46,7 @@ export const MultiSwapActions = () => {
       {/* Cancel Button */}
       {isQuotingAll && (
         <Button
-          onClick={cancelQuoting}
+          onClick={handleCancelQuoting}
           variant="outline"
           size="sm"
           className="w-full"
