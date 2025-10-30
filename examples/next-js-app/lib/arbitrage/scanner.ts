@@ -41,26 +41,22 @@ export class ArbitrageScanner {
   private omniston: Omniston;
   private config: ArbitrageScannerConfig;
   private currentSlippageBps: number = DEFAULT_SLIPPAGE_BPS;
-  private currentMinProfitRate: number = 0.001; // Default 0.1%
+  private currentMinProfitRate: number = DEFAULT_TARGET_PROFIT_RATE;
   
+  private createInitialStreamState(): QuoteStreamState {
+    return {
+      quote: null,
+      rfqId: null,
+      lastUpdate: 0,
+      status: "idle",
+      error: null,
+      history: [],
+    };
+  }
+
   // Quote stream states
-  private forwardStream: QuoteStreamState = {
-    quote: null,
-    rfqId: null,
-    lastUpdate: 0,
-    status: "idle",
-    error: null,
-    history: [],
-  };
-  
-  private reverseStream: QuoteStreamState = {
-    quote: null,
-    rfqId: null,
-    lastUpdate: 0,
-    status: "idle",
-    error: null,
-    history: [],
-  };
+  private forwardStream: QuoteStreamState = this.createInitialStreamState();
+  private reverseStream: QuoteStreamState = this.createInitialStreamState();
   
   // Subscriptions
   private forwardSubscription: { unsubscribe: () => void } | null = null;
@@ -98,7 +94,7 @@ export class ArbitrageScanner {
     tokenBAddress: string,
     scanAmount: bigint,
     slippageBps: number = DEFAULT_SLIPPAGE_BPS,
-    minProfitRate: number = 0.001, // Default 0.1%
+    minProfitRate: number = DEFAULT_TARGET_PROFIT_RATE,
   ): Promise<void> {
     // Stop any existing scans
     this.stopScanning();
@@ -435,22 +431,7 @@ export class ArbitrageScanner {
    * Reset stream states
    */
   private resetStreamStates(): void {
-    this.forwardStream = {
-      quote: null,
-      rfqId: null,
-      lastUpdate: 0,
-      status: "idle",
-      error: null,
-      history: [],
-    };
-
-    this.reverseStream = {
-      quote: null,
-      rfqId: null,
-      lastUpdate: 0,
-      status: "idle",
-      error: null,
-      history: [],
-    };
+    this.forwardStream = this.createInitialStreamState();
+    this.reverseStream = this.createInitialStreamState();
   }
 }

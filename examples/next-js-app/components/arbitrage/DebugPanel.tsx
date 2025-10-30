@@ -4,6 +4,7 @@ import { Calculator } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { DebugInfo } from "@/lib/arbitrage/types";
+import { formatAmount } from "@/lib/arbitrage/utils";
 
 interface DebugPanelProps {
   debugInfo: DebugInfo | null;
@@ -11,11 +12,6 @@ interface DebugPanelProps {
 }
 
 export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
-  const formatAmount = (amount: bigint, decimals: number = 6): string => {
-    const value = Number(amount) / 10 ** decimals;
-    return value.toFixed(decimals);
-  };
-
   if (!debugInfo) {
     return (
       <div className={cn("rounded-lg border bg-gray-50 p-4 dark:bg-gray-900", className)}>
