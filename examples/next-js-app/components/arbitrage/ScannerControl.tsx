@@ -6,7 +6,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_TARGET_PROFIT_RATE, TOKEN_ADDRESSES, INPUT_LIMITS, USDT_DECIMALS } from "@/lib/arbitrage/constants";
 import type { ScannerStatus } from "@/lib/arbitrage/types";
-import { validateArbitrageParams } from "@/lib/arbitrage/utils";
 
 interface ScannerControlProps {
   status: ScannerStatus;
@@ -46,8 +45,8 @@ export function ScannerControl({
       return `Slippage must be between ${INPUT_LIMITS.MIN_SLIPPAGE_PERCENT}% and ${INPUT_LIMITS.MAX_SLIPPAGE_PERCENT}%`;
     }
     
-    if (isNaN(profitRate) || profitRate < 0) {
-      return "Minimum profit rate must be non-negative";
+    if (isNaN(profitRate) || profitRate < -100) {
+      return "Minimum profit rate must be -100% or higher";
     }
     
     return null;
@@ -63,22 +62,9 @@ export function ScannerControl({
     setValidationError(null);
     setIsStarting(true);
     try {
-      const amount = BigInt(Number(scanAmount) * 10 ** USDT_DECIMALS); // Convert to token decimals
-      const slippageBps = Math.round(Number(slippagePercent) * 100); // Convert percent to basis points (100 = 1%)
-      const profitRate = Number(minProfitRate) / 100; // Convert percent to decimal
-      
-      const validationError = validateArbitrageParams(
-        TOKEN_ADDRESSES.USDT,
-        TOKEN_ADDRESSES.USDE,
-        amount,
-        slippageBps,
-        profitRate
-      );
-      
-      if (validationError) {
-        setValidationError(validationError);
-        return;
-      }
+      const amount = BigInt(Number(scanAmount) * 10 ** USDT_DECIMALS);
+      const slippageBps = Math.round(Number(slippagePercent) * 100);
+      const profitRate = Number(minProfitRate) / 100;
       
       await onStart(TOKEN_ADDRESSES.USDT, TOKEN_ADDRESSES.USDE, amount, slippageBps, profitRate);
     } catch (error) {

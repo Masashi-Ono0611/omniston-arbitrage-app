@@ -11,7 +11,7 @@ import type {
 } from "@/lib/arbitrage/types";
 import { ArbitrageScanner } from "@/lib/arbitrage/scanner";
 import { logger } from "@/lib/logger";
-import { createQuoteStreamUpdater, createInitialQuoteStream, validateArbitrageParams } from "@/lib/arbitrage/utils";
+import { createQuoteStreamUpdater, createInitialQuoteStream } from "@/lib/arbitrage/utils";
 
 /**
  * Custom hook for arbitrage scanning
@@ -22,8 +22,8 @@ import { createQuoteStreamUpdater, createInitialQuoteStream, validateArbitragePa
 export const useArbitrage = () => {
   const omniston = useOmniston();
   const scannerRef = useRef<ArbitrageScanner | null>(null);
-  const updateForwardStream = useRef(createQuoteStreamUpdater("forward"));
-  const updateReverseStream = useRef(createQuoteStreamUpdater("reverse"));
+  const updateForwardStream = useRef(createQuoteStreamUpdater());
+  const updateReverseStream = useRef(createQuoteStreamUpdater());
 
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -82,12 +82,6 @@ export const useArbitrage = () => {
     async (tokenAAddress: string, tokenBAddress: string, amount: bigint, slippageBps: number, minProfitRate: number) => {
       if (!scannerRef.current) {
         throw new Error("Scanner not initialized");
-      }
-
-      // Validate parameters
-      const validationError = validateArbitrageParams(tokenAAddress, tokenBAddress, amount, slippageBps, minProfitRate);
-      if (validationError) {
-        throw new Error(validationError);
       }
 
       setStatus("initializing");

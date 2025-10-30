@@ -181,24 +181,26 @@ export class ArbitrageScanner {
   }
 
   /**
-   * Subscribe to forward quote stream (tokenA → tokenB)
+   * Subscribe to quote stream (generic method)
    */
-  private async subscribeForwardStream(
-    tokenAAddress: string,
-    tokenBAddress: string,
+  private async subscribeStream(
+    direction: "forward" | "reverse",
+    bidAssetAddress: string,
+    askAssetAddress: string,
     amount: bigint,
     slippageBps: number,
   ): Promise<void> {
-    this.forwardStream.status = "loading";
+    const stream = direction === "forward" ? this.forwardStream : this.reverseStream;
+    stream.status = "loading";
 
     const quoteRequest: QuoteRequest = {
       settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
       askAssetAddress: {
-        address: tokenBAddress,
+        address: askAssetAddress,
         blockchain: Blockchain.TON,
       },
       bidAssetAddress: {
-        address: tokenAAddress,
+        address: bidAssetAddress,
         blockchain: Blockchain.TON,
       },
       amount: {
@@ -216,23 +218,45 @@ export class ArbitrageScanner {
     try {
       const observable = await this.omniston.requestForQuote(quoteRequest);
 
-      this.forwardSubscription = observable.subscribe({
+      const subscription = observable.subscribe({
         next: (event: QuoteResponseEvent) => {
-          this.handleForwardQuoteEvent(event);
+          if (direction === "forward") {
+            this.handleForwardQuoteEvent(event);
+          } else {
+            this.handleReverseQuoteEvent(event);
+          }
         },
         error: (error: unknown) => {
-          this.forwardStream.status = "error";
-          this.forwardStream.error = String(error);
+          stream.status = "error";
+          stream.error = String(error);
           this.onErrorCallback?.(
             error instanceof Error ? error : new Error(String(error)),
           );
         },
       });
+
+      if (direction === "forward") {
+        this.forwardSubscription = subscription;
+      } else {
+        this.reverseSubscription = subscription;
+      }
     } catch (error) {
-      this.forwardStream.status = "error";
-      this.forwardStream.error = String(error);
+      stream.status = "error";
+      stream.error = String(error);
       throw error;
     }
+  }
+
+  /**
+   * Subscribe to forward quote stream (tokenA → tokenB)
+   */
+  private async subscribeForwardStream(
+    tokenAAddress: string,
+    tokenBAddress: string,
+    amount: bigint,
+    slippageBps: number,
+  ): Promise<void> {
+    await this.subscribeStream("forward", tokenAAddress, tokenBAddress, amount, slippageBps);
   }
 
   /**
@@ -248,50 +272,7 @@ export class ArbitrageScanner {
     }
 
     const reverseAmount = calculateReceivedAmount(this.forwardStream.quote);
-    this.reverseStream.status = "loading";
-
-    const quoteRequest: QuoteRequest = {
-      settlementMethods: [SettlementMethod.SETTLEMENT_METHOD_SWAP],
-      askAssetAddress: {
-        address: tokenAAddress,
-        blockchain: Blockchain.TON,
-      },
-      bidAssetAddress: {
-        address: tokenBAddress,
-        blockchain: Blockchain.TON,
-      },
-      amount: {
-        bidUnits: reverseAmount.toString(),
-        askUnits: undefined,
-      },
-      settlementParams: {
-        maxPriceSlippageBps: this.currentSlippageBps,
-        maxOutgoingMessages: 4,
-        gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
-        flexibleReferrerFee: false,
-      },
-    };
-
-    try {
-      const observable = await this.omniston.requestForQuote(quoteRequest);
-
-      this.reverseSubscription = observable.subscribe({
-        next: (event: QuoteResponseEvent) => {
-          this.handleReverseQuoteEvent(event);
-        },
-        error: (error: unknown) => {
-          this.reverseStream.status = "error";
-          this.reverseStream.error = String(error);
-          this.onErrorCallback?.(
-            error instanceof Error ? error : new Error(String(error)),
-          );
-        },
-      });
-    } catch (error) {
-      this.reverseStream.status = "error";
-      this.reverseStream.error = String(error);
-      throw error;
-    }
+    await this.subscribeStream("reverse", tokenBAddress, tokenAAddress, reverseAmount, this.currentSlippageBps);
   }
 
   /**

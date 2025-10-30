@@ -4,7 +4,7 @@ import { Calculator } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { DebugInfo } from "@/lib/arbitrage/types";
-import { formatAmount } from "@/lib/arbitrage/utils";
+import { formatAmount, calculateTotalGasCost, formatGasAmount } from "@/lib/arbitrage/utils";
 
 interface DebugPanelProps {
   debugInfo: DebugInfo | null;
@@ -138,17 +138,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
               <div className="flex justify-between">
                 <span className="text-gray-500">Total Gas:</span>
                 <span className="font-mono text-xs">
-                  {(() => {
-                    const fwd = forwardQuote.estimatedGasConsumption && forwardQuote.estimatedGasConsumption !== ""
-                      ? BigInt(forwardQuote.estimatedGasConsumption)
-                      : 0n;
-                    const rev = reverseQuote.estimatedGasConsumption && reverseQuote.estimatedGasConsumption !== ""
-                      ? BigInt(reverseQuote.estimatedGasConsumption)
-                      : 0n;
-                    const total = fwd + rev; // nanoTON
-                    const totalTon = (Number(total) / 1e9).toFixed(9);
-                    return `${totalTon} TON`;
-                  })()}
+                  {formatGasAmount(calculateTotalGasCost(forwardQuote, reverseQuote))} TON
                 </span>
               </div>
             </div>

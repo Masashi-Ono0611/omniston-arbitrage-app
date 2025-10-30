@@ -25,9 +25,7 @@ export function formatTimestamp(ts: number): string {
 /**
  * Create a quote stream state updater helper
  */
-export function createQuoteStreamUpdater(
-  _direction: "forward" | "reverse"
-) {
+export function createQuoteStreamUpdater() {
   return function updateStream(
     prev: QuoteStreamState,
     quote: Quote,
@@ -79,6 +77,26 @@ export function calculateProfitRate(netProfit: bigint, initialAmount: bigint): n
 }
 
 /**
+ * Calculate total gas cost from two quotes
+ */
+export function calculateTotalGasCost(forwardQuote: Quote, reverseQuote: Quote): bigint {
+  const fwd = forwardQuote.estimatedGasConsumption && forwardQuote.estimatedGasConsumption !== ""
+    ? BigInt(forwardQuote.estimatedGasConsumption)
+    : 0n;
+  const rev = reverseQuote.estimatedGasConsumption && reverseQuote.estimatedGasConsumption !== ""
+    ? BigInt(reverseQuote.estimatedGasConsumption)
+    : 0n;
+  return fwd + rev;
+}
+
+/**
+ * Format gas amount from nanoTON to TON
+ */
+export function formatGasAmount(nanoTon: bigint): string {
+  return (Number(nanoTon) / 1e9).toFixed(9);
+}
+
+/**
  * Validate arbitrage parameters
  */
 export function validateArbitrageParams(
@@ -104,8 +122,8 @@ export function validateArbitrageParams(
     return "Slippage BPS must be between 0 and 10000";
   }
   
-  if (minProfitRate < 0) {
-    return "Minimum profit rate must be non-negative";
+  if (minProfitRate < -1) {
+    return "Minimum profit rate must be -100% or higher";
   }
   
   return null;
