@@ -3,7 +3,7 @@
  * Prevents logging in production while maintaining debug output in development
  */
 
-const isDevelopment = process.env.NODE_ENV === "development" || true; // Temporarily force logging
+const isDevelopment = process.env.NODE_ENV === "development";
 
 export const logger = {
   /**

@@ -114,32 +114,17 @@ export class ApiClient implements IApiClient {
    * @returns JSON-encoded notifications
    */
   readStream(method: string, subscriptionId: number): Observable<unknown> {
-    console.log(
-      `📡 [ApiClient] readStream called: method=${method}, subscriptionId=${subscriptionId}`,
-    );
     return new Observable((subscriber) => {
       const consumerMap = this.getStreamConsumerMap(method);
-      console.log(
-        `📝 [ApiClient] Setting consumer for subscription ${subscriptionId}, map size before=${consumerMap.size}`,
-      );
       consumerMap.set(subscriptionId, (err, data) => {
-        console.log(
-          `🔔 [ApiClient] Consumer callback invoked for subscription ${subscriptionId}, err=${!!err}, data=${!!data}`,
-        );
         if (err) {
           subscriber.error(err);
           return;
         }
         subscriber.next(data);
       });
-      console.log(
-        `📝 [ApiClient] Consumer set, map size after=${consumerMap.size}`,
-      );
 
       return () => {
-        console.log(
-          `🗑️ [ApiClient] Unsubscribing from subscription ${subscriptionId}`,
-        );
         this.streamConsumers.get(method)?.delete(subscriptionId);
       };
     });
@@ -175,16 +160,9 @@ export class ApiClient implements IApiClient {
     result = new Map();
     this.streamConsumers.set(method, result);
     this.serverAndClient.addMethod(method, (payload: StreamPayload) => {
-      console.log(
-        `🎬 [ApiClient] addMethod callback for method=${method}, subscription=${payload.subscription}`,
-      );
       // Always get the latest map, not the closure-captured one
       const consumerMap = this.streamConsumers.get(method);
-      console.log(
-        `🗺️ [ApiClient] consumerMap size=${consumerMap?.size}, has subscription=${consumerMap?.has(payload.subscription)}`,
-      );
       const consumer = consumerMap?.get(payload.subscription);
-      console.log(`👤 [ApiClient] consumer found=${!!consumer}`);
       if ("error" in payload) {
         const payloadError = payload.error;
 
@@ -196,10 +174,8 @@ export class ApiClient implements IApiClient {
             )
           : new Error(`Server error: ${JSON.stringify(payloadError)}`);
 
-        console.log(`❌ [ApiClient] Calling consumer with error`);
         consumer?.(serverError, undefined);
       } else {
-        console.log(`✅ [ApiClient] Calling consumer with result`);
         consumer?.(undefined, payload.result);
       }
     });

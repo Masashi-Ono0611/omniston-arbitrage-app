@@ -136,18 +136,16 @@ const multiSwapReducer = (
             : { ...swap }, // Force new reference even for unchanged swaps
       );
       const h = action.payload.quote.quoteId;
-      console.log(
-        `📦 [STORE] SET_SWAP_QUOTE id=${action.payload.id} quoteId=${h} history_len=${
+      logger.info(
+        `[STORE] SET_SWAP_QUOTE id=${action.payload.id} quoteId=${h} history_len=${
           nextSwaps.find((s) => s.id === action.payload.id)?.quoteHistory
             .length ?? 0
         }`,
       );
-      const nextState = {
+      return {
         ...state,
         swaps: nextSwaps,
       };
-      console.log("📦 [STORE] Returning new state", nextState);
-      return nextState;
     }
 
     case "SET_SWAP_STATUS":
@@ -208,14 +206,6 @@ const multiSwapReducer = (
 
 export const MultiSwapProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(multiSwapReducer, initialState);
-
-  console.info("[PROVIDER] State updated", {
-    swapsCount: state.swaps.length,
-    histories: state.swaps.map((s) => ({
-      id: s.id,
-      len: s.quoteHistory.length,
-    })),
-  });
 
   return (
     <MultiSwapContext.Provider value={state}>

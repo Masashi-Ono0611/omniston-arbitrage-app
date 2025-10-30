@@ -2,7 +2,7 @@
 
 import type { Quote, SwapSettlementParams } from "@ston-fi/omniston-sdk-react";
 import { CheckCircle, ChevronDown, Loader2 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 import { AddressPreview } from "@/components/AddressPreview";
 import {
@@ -11,18 +11,12 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Copy } from "@/components/ui/copy";
-import { isSwapWithQuote } from "@/lib/type-guards";
 import { bigNumberToFloat, trimStringWithEllipsis } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
 import { type SwapItem, useMultiSwap } from "@/providers/multi-swap";
 
 export const MultiSwapQuotePreview = () => {
   const { swaps } = useMultiSwap();
-
-  console.info(
-    "[PREVIEW] swaps updated",
-    swaps.map((s) => ({ id: s.id, historyLen: s.quoteHistory.length })),
-  );
 
   // Show swaps that are not idle (loading or success)
   const activeSwaps = swaps.filter((swap) => swap.status !== "idle");
@@ -35,28 +29,13 @@ export const MultiSwapQuotePreview = () => {
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-medium">Quote Details</h2>
       {activeSwaps.map((swap, index) => (
-        <SwapStatusCard
-          key={`${swap.id}-${swap.quoteHistory.length}`}
-          swap={swap}
-          index={index}
-        />
+        <SwapStatusCard key={swap.id} swap={swap} index={index} />
       ))}
     </div>
   );
 };
 
 const SwapStatusCard = ({ swap, index }: { swap: SwapItem; index: number }) => {
-  useEffect(() => {
-    console.info(
-      "[UI] Swap",
-      swap.id,
-      "history_len",
-      swap.quoteHistory.length,
-      "swap_ref",
-      swap,
-    );
-  }, [swap.id, swap.quoteHistory, swap]);
-
   return (
     <div className="flex flex-col gap-2 p-4 border rounded-md bg-card">
       <SwapHeader swap={swap} index={index} />
@@ -72,9 +51,6 @@ const SwapHeader = ({ swap, index }: { swap: SwapItem; index: number }) => {
         {index + 1}
       </div>
       <h3 className="font-medium">Swap {index + 1}</h3>
-      <span className="text-xs text-muted-foreground">
-        History: {swap.quoteHistory.length}
-      </span>
       <StatusBadge status={swap.status} />
     </div>
   );

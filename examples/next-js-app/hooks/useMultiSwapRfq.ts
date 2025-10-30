@@ -91,18 +91,14 @@ export const useMultiSwapRfq = () => {
         });
 
         const observable = await omniston.requestForQuote(quoteRequest);
-        console.log(
-          `🎯 [RFQ] Observable created for Swap ${swap.id}`,
-          observable,
-        );
+        logger.info(`[RFQ] Observable created for Swap ${swap.id}`);
 
         return new Promise((resolve, reject) => {
           let firstQuoteReceived = false;
 
-          console.log(`🔌 [RFQ] About to subscribe for Swap ${swap.id}`);
           const subscription = observable.subscribe({
             next: (event: QuoteResponseEvent) => {
-              console.log(`🔔 [RFQ] Event received for Swap ${swap.id}:`, {
+              logger.info(`[RFQ] Event received for Swap ${swap.id}:`, {
                 type: event.type,
                 rfqId: event.rfqId,
                 quoteId:
@@ -127,18 +123,14 @@ export const useMultiSwapRfq = () => {
                   firstQuoteReceived = true;
                   // Store subscription for later cleanup
                   subscriptionsRef.current.set(swap.id, subscription);
-                  console.log(
-                    `🎉 [RFQ] First quote received for Swap ${swap.id}, subscription stored. Active subscriptions: ${subscriptionsRef.current.size}`,
-                  );
-                  console.log(
-                    `📋 [RFQ] Current subscriptions:`,
-                    Array.from(subscriptionsRef.current.keys()),
+                  logger.info(
+                    `[RFQ] First quote received for Swap ${swap.id}, subscription stored. Active subscriptions: ${subscriptionsRef.current.size}`,
                   );
                   // Resolve immediately after first quote - no waiting
                   resolve();
                 } else {
-                  console.log(
-                    `✅ [RFQ] Quote updated for Swap ${swap.id} (Quote ID: ${event.quote.quoteId})`,
+                  logger.info(
+                    `[RFQ] Quote updated for Swap ${swap.id} (Quote ID: ${event.quote.quoteId})`,
                   );
                 }
                 // Subscription stays active - quotes will continue to update
@@ -181,10 +173,7 @@ export const useMultiSwapRfq = () => {
             });
           }
 
-          console.log(
-            `✅ [RFQ] Subscription started for Swap ${swap.id}`,
-            subscription,
-          );
+          logger.info(`[RFQ] Subscription started for Swap ${swap.id}`);
         });
       } catch (error) {
         logger.error(`[RFQ] Exception caught for Swap ${swap.id}:`, error);
