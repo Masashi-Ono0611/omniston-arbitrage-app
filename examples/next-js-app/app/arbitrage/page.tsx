@@ -2,6 +2,7 @@
 
 import { AlertCircle, TrendingUp } from "lucide-react";
 
+import { DebugPanel } from "@/components/arbitrage/DebugPanel";
 import { OpportunityCard } from "@/components/arbitrage/OpportunityCard";
 import { QuoteStreamStatus } from "@/components/arbitrage/QuoteStreamStatus";
 import { ScannerControl } from "@/components/arbitrage/ScannerControl";
@@ -13,6 +14,8 @@ export default function ArbitragePage() {
     error,
     currentOpportunity,
     opportunityHistory,
+    currentMinProfitRate,
+    debugInfo,
     forwardStream,
     reverseStream,
     startScanning,
@@ -47,13 +50,14 @@ export default function ArbitragePage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left column: Scanner control */}
-        <div className="lg:col-span-1">
+        {/* Left column: Scanner control and debug */}
+        <div className="space-y-6 lg:col-span-1">
           <ScannerControl
             status={status}
             onStart={startScanning}
             onStop={stopScanning}
           />
+          <DebugPanel debugInfo={debugInfo} />
         </div>
 
         {/* Right column: Quote streams and opportunities */}
@@ -71,7 +75,10 @@ export default function ArbitragePage() {
           {currentOpportunity && (
             <div>
               <h2 className="mb-3 text-lg font-bold">Current Opportunity</h2>
-              <OpportunityCard opportunity={currentOpportunity} />
+              <OpportunityCard 
+                opportunity={currentOpportunity} 
+                targetProfitRate={currentMinProfitRate}
+              />
             </div>
           )}
 
@@ -94,6 +101,7 @@ export default function ArbitragePage() {
                   <OpportunityCard
                     key={`${opp.timestamp}-${index}`}
                     opportunity={opp}
+                    targetProfitRate={currentMinProfitRate}
                   />
                 ))}
               </div>

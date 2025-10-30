@@ -21,11 +21,25 @@ export const useArbitrage = () => {
   const scannerRef = useRef<ArbitrageScanner | null>(null);
 
   const [status, setStatus] = useState<ScannerStatus>("idle");
-  const [currentOpportunity, setCurrentOpportunity] =
-    useState<ArbitrageOpportunity | null>(null);
-  const [opportunityHistory, setOpportunityHistory] = useState<
-    ArbitrageOpportunity[]
-  >([]);
+  const [error, setError] = useState<string | null>(null);
+  const [currentOpportunity, setCurrentOpportunity] = useState<ArbitrageOpportunity | null>(null);
+  const [opportunityHistory, setOpportunityHistory] = useState<ArbitrageOpportunity[]>([]);
+  const [currentMinProfitRate, setCurrentMinProfitRate] = useState<number>(0.001); // Default 0.1%
+  const [debugInfo, setDebugInfo] = useState<{
+    forwardQuote: Quote | null;
+    reverseQuote: Quote | null;
+    grossProfit: bigint;
+    netProfit: bigint;
+    profitRate: number;
+    targetProfitRate: number;
+    isProfitable: boolean;
+    gasCost: bigint;
+    slippageCost: bigint;
+    slippageBps?: number;
+    slippageForward?: bigint;
+    slippageReverse?: bigint;
+    scanAmount: bigint;
+  } | null>(null);
   const [forwardStream, setForwardStream] = useState<QuoteStreamState>({
     quote: null,
     rfqId: null,
@@ -42,7 +56,6 @@ export const useArbitrage = () => {
     error: null,
     history: [],
   });
-  const [error, setError] = useState<string | null>(null);
 
   /**
    * Initialize scanner
@@ -62,6 +75,11 @@ export const useArbitrage = () => {
         logger.error("Arbitrage scanner error:", err);
         setError(err.message);
         setStatus("error");
+      });
+
+      scannerRef.current.onDebug((debugData) => {
+        logger.debug("Arbitrage calculation debug:", debugData);
+        setDebugInfo(debugData);
       });
 
       scannerRef.current.onQuoteUpdate((direction, quote, rfqId, receivedAt) => {
@@ -123,37 +141,28 @@ export const useArbitrage = () => {
   }, [omniston]);
 
   /**
-   * Start scanning for arbitrage opportunities
+   * Start scanning
    */
   const startScanning = useCallback(
-    async (
-      tokenAAddress: string,
-      tokenBAddress: string,
-      scanAmount: bigint,
-    ) => {
+    async (tokenAAddress: string, tokenBAddress: string, amount: bigint, slippageBps: number, minProfitRate: number) => {
       if (!scannerRef.current) {
         throw new Error("Scanner not initialized");
       }
 
+      setStatus("initializing");
+      setError(null);
+      setCurrentMinProfitRate(minProfitRate);
+
       try {
-        setStatus("initializing");
-        setError(null);
-        setCurrentOpportunity(null);
-
-        await scannerRef.current.startScanning(
-          tokenAAddress,
-          tokenBAddress,
-          scanAmount,
-        );
-
+        await scannerRef.current.startScanning(tokenAAddress, tokenBAddress, amount, slippageBps, minProfitRate);
         setStatus("scanning");
         logger.info("Arbitrage scanning started");
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        setError(errorMessage);
+        const error = err instanceof Error ? err : new Error(String(err));
+        logger.error("Failed to start arbitrage scanning:", error);
+        setError(error.message);
         setStatus("error");
-        logger.error("Failed to start scanning:", err);
-        throw err;
+        throw error;
       }
     },
     [],
@@ -218,6 +227,12 @@ export const useArbitrage = () => {
     // Current opportunity
     currentOpportunity,
     opportunityHistory,
+
+    // Configuration
+    currentMinProfitRate,
+
+    // Debug information
+    debugInfo,
 
     // Stream states
     forwardStream,

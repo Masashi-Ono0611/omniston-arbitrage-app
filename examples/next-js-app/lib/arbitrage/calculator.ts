@@ -39,13 +39,89 @@ export function calculateArbitrageProfit(
 }
 
 /**
- * Calculate net profit after gas costs
+ * Calculate net profit after gas costs and slippage
  */
 export function calculateNetProfit(
   grossProfit: bigint,
   gasCost: bigint,
+  slippageBps: number = 50, // Default 0.5%
 ): bigint {
-  return grossProfit - gasCost;
+  // Calculate slippage cost (slippageBps / 10000)
+  const slippageCost = (grossProfit * BigInt(slippageBps)) / 10000n;
+  return grossProfit - gasCost - slippageCost;
+}
+
+/**
+ * Calculate net profit when explicit slippage cost is provided
+ */
+export function calculateNetProfitWithSlippageCost(
+  grossProfit: bigint,
+  gasCost: bigint,
+  slippageCost: bigint,
+): bigint {
+  return grossProfit - gasCost - slippageCost;
+}
+
+/**
+ * Calculate actual gas cost from quotes (in USDT)
+ * Note: Using hardcoded 1 TON = 2 USDT rate for calculation
+ * If gasBudget is not set in quotes, falls back to estimated gas consumption or default estimate
+ */
+export function calculateGasCostFromQuotes(
+  forwardQuote: Quote,
+  reverseQuote: Quote,
+): bigint {
+  // Try to extract gas budget from quotes (in nanoTON)
+  let forwardGas = 0n;
+  let reverseGas = 0n;
+  
+  // Use estimatedGasConsumption from quotes (convert gas units to nanoTON)
+  // estimatedGasConsumption is in gas units, need to convert to nanoTON
+  // Assuming 1 gas unit ≈ 1 nanoTON for TON blockchain
+  if (forwardQuote.estimatedGasConsumption && forwardQuote.estimatedGasConsumption !== "") {
+    forwardGas = BigInt(forwardQuote.estimatedGasConsumption);
+    console.log('[GAS] Forward estimatedGasConsumption:', forwardQuote.estimatedGasConsumption, '→', forwardGas.toString());
+  } else {
+    // Fallback to default estimate if not available (0.065 TON = 65_000_000 nanoTON)
+    forwardGas = 65_000_000n;
+    console.log('[GAS] Forward using default:', forwardGas.toString());
+  }
+  
+  if (reverseQuote.estimatedGasConsumption && reverseQuote.estimatedGasConsumption !== "") {
+    reverseGas = BigInt(reverseQuote.estimatedGasConsumption);
+    console.log('[GAS] Reverse estimatedGasConsumption:', reverseQuote.estimatedGasConsumption, '→', reverseGas.toString());
+  } else {
+    reverseGas = 65_000_000n;
+    console.log('[GAS] Reverse using default:', reverseGas.toString());
+  }
+  
+  // Total gas cost in nanoTON
+  const totalGasNanoTON = forwardGas + reverseGas;
+  console.log('[GAS] Total nanoTON:', totalGasNanoTON.toString());
+  
+  // Convert nanoTON to USDT (1 TON = 2 USDT, hardcoded)
+  // 1 TON = 1_000_000_000 nanoTON
+  // 1 TON = 2 USDT = 2_000_000 USDT (6 decimals)
+  // Formula: nanoTON × 2_000_000 (USDT with 6 decimals) ÷ 1_000_000_000 (nanoTON per TON)
+  const gasCostInUSDT = (totalGasNanoTON * 2_000_000n) / 1_000_000_000n;
+  console.log('[GAS] Gas cost in USDT:', gasCostInUSDT.toString(), '(', Number(gasCostInUSDT) / 1e6, 'USDT)');
+  
+  return gasCostInUSDT;
+}
+
+/**
+ * Calculate maximum slippage cost based on notional amounts and slippage tolerance (bps)
+ * forwardNotional: initial scan amount in USDT (6 decimals)
+ * reverseNotional: expected USDT received from reverse quote (6 decimals)
+ */
+export function calculateMaxSlippageCost(
+  initialAmount: bigint,
+  reverseReceivedUsdt: bigint,
+  slippageBps: number,
+): bigint {
+  const forwardSlip = (initialAmount * BigInt(slippageBps)) / 10000n;
+  const reverseSlip = (reverseReceivedUsdt * BigInt(slippageBps)) / 10000n;
+  return forwardSlip + reverseSlip;
 }
 
 /**

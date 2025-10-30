@@ -96,6 +96,14 @@ export function QuoteStreamStatus({
               ).toFixed(6)}
             </span>
           </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600 dark:text-gray-400">Est. Gas Units:</span>
+            <span className="font-mono text-xs">
+              {quote.estimatedGasConsumption && quote.estimatedGasConsumption !== ""
+                ? `${(Number(quote.estimatedGasConsumption) / 1e9).toFixed(9)} TON`
+                : 'Not set'}
+            </span>
+          </div>
           {lastUpdate > 0 && (
             <div className="flex justify-between border-t pt-2">
               <span className="text-xs text-gray-500 dark:text-gray-500">

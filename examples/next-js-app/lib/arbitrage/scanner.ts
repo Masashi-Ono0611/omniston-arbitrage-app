@@ -9,16 +9,20 @@ import {
 } from "@ston-fi/omniston-sdk-react";
 
 import {
-  calculateArbitrageProfit,
-  calculateNetProfit,
-  calculateReceivedAmount,
-  isProfitableArbitrage,
-} from "./calculator";
-import {
   ARBITRAGE_SLIPPAGE_BPS,
+  DEFAULT_SCAN_AMOUNT,
   ESTIMATED_GAS_COST,
   MIN_PROFIT_RATE,
+  TOKEN_ADDRESSES,
 } from "./constants";
+import {
+  calculateArbitrageProfit,
+  calculateGasCostFromQuotes,
+  calculateMaxSlippageCost,
+  calculateNetProfitWithSlippageCost,
+  calculateReceivedAmount,
+  isProfitableArbitrage,
+} from "@/lib/arbitrage/calculator";
 import type {
   ArbitrageOpportunity,
   ArbitrageScannerConfig,
@@ -38,6 +42,8 @@ import type {
 export class ArbitrageScanner {
   private omniston: Omniston;
   private config: ArbitrageScannerConfig;
+  private currentSlippageBps: number = 50; // Default 0.5%
+  private currentMinProfitRate: number = 0.001; // Default 0.1%
   
   // Quote stream states
   private forwardStream: QuoteStreamState = {
@@ -71,6 +77,21 @@ export class ArbitrageScanner {
     rfqId: string,
     receivedAt: number,
   ) => void;
+  private onDebugCallback?: (debugInfo: {
+    forwardQuote: Quote | null;
+    reverseQuote: Quote | null;
+    grossProfit: bigint;
+    netProfit: bigint;
+    profitRate: number;
+    targetProfitRate: number;
+    isProfitable: boolean;
+    gasCost: bigint;
+    slippageCost: bigint;
+    slippageBps?: number;
+    slippageForward?: bigint;
+    slippageReverse?: bigint;
+    scanAmount: bigint;
+  }) => void;
 
   constructor(
     omniston: Omniston,
@@ -92,15 +113,19 @@ export class ArbitrageScanner {
     tokenAAddress: string,
     tokenBAddress: string,
     scanAmount: bigint,
+    slippageBps: number = 50, // Default 0.5%
+    minProfitRate: number = 0.001, // Default 0.1%
   ): Promise<void> {
     // Stop any existing scans
     this.stopScanning();
 
-    // Update scan amount
+    // Update scan amount, slippage, and profit rate
     this.config.scanAmount = scanAmount;
+    this.currentSlippageBps = slippageBps;
+    this.currentMinProfitRate = minProfitRate;
 
     // Subscribe to forward stream (tokenA → tokenB)
-    await this.subscribeForwardStream(tokenAAddress, tokenBAddress, scanAmount);
+    await this.subscribeForwardStream(tokenAAddress, tokenBAddress, scanAmount, slippageBps);
 
     // Wait a moment for forward quote to arrive
     // This ensures we have a valid amount for the reverse stream
@@ -156,6 +181,26 @@ export class ArbitrageScanner {
   }
 
   /**
+   * Set callback for debug information
+   */
+  onDebug(
+    callback: (debugInfo: {
+      forwardQuote: Quote | null;
+      reverseQuote: Quote | null;
+      grossProfit: bigint;
+      netProfit: bigint;
+      profitRate: number;
+      targetProfitRate: number;
+      isProfitable: boolean;
+      gasCost: bigint;
+      slippageCost: bigint;
+      scanAmount: bigint;
+    }) => void,
+  ): void {
+    this.onDebugCallback = callback;
+  }
+
+  /**
    * Get current stream states
    */
   getStreamStates(): {
@@ -175,6 +220,7 @@ export class ArbitrageScanner {
     tokenAAddress: string,
     tokenBAddress: string,
     amount: bigint,
+    slippageBps: number,
   ): Promise<void> {
     this.forwardStream.status = "loading";
 
@@ -193,7 +239,7 @@ export class ArbitrageScanner {
         askUnits: undefined,
       },
       settlementParams: {
-        maxPriceSlippageBps: ARBITRAGE_SLIPPAGE_BPS,
+        maxPriceSlippageBps: slippageBps,
         maxOutgoingMessages: 4,
         gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
         flexibleReferrerFee: false,
@@ -252,7 +298,7 @@ export class ArbitrageScanner {
         askUnits: undefined,
       },
       settlementParams: {
-        maxPriceSlippageBps: ARBITRAGE_SLIPPAGE_BPS,
+        maxPriceSlippageBps: this.currentSlippageBps,
         maxOutgoingMessages: 4,
         gaslessSettlement: GaslessSettlement.GASLESS_SETTLEMENT_POSSIBLE,
         flexibleReferrerFee: false,
@@ -346,16 +392,45 @@ export class ArbitrageScanner {
       this.config.scanAmount,
     );
 
-    const netProfit = calculateNetProfit(
+    // Calculate actual gas cost from quotes
+    const actualGasCost = calculateGasCostFromQuotes(forwardQuote, reverseQuote);
+
+    // Max slippage cost using notionals (USDT 6-decimals)
+    const reverseReceivedUsdt = calculateReceivedAmount(reverseQuote);
+    const forwardSlip = (this.config.scanAmount * BigInt(this.currentSlippageBps)) / 10000n;
+    const reverseSlip = (reverseReceivedUsdt * BigInt(this.currentSlippageBps)) / 10000n;
+    const slippageCost = forwardSlip + reverseSlip;
+
+    const netProfit = calculateNetProfitWithSlippageCost(
       grossProfit,
-      this.config.estimatedGasCost,
+      actualGasCost,
+      slippageCost,
     );
+
+    // slippageCost already computed above
 
     const profitable = isProfitableArbitrage(
       netProfit,
-      this.config.minProfitRate,
+      this.currentMinProfitRate,
       this.config.scanAmount,
     );
+
+    // Send debug information (always)
+    this.onDebugCallback?.({
+      forwardQuote,
+      reverseQuote,
+      grossProfit,
+      netProfit,
+      profitRate,
+      targetProfitRate: this.currentMinProfitRate,
+      isProfitable: profitable,
+      gasCost: actualGasCost,
+      slippageCost,
+      slippageBps: this.currentSlippageBps,
+      slippageForward: forwardSlip,
+      slippageReverse: reverseSlip,
+      scanAmount: this.config.scanAmount,
+    });
 
     // Create opportunity object
     const opportunity: ArbitrageOpportunity = {
@@ -368,7 +443,7 @@ export class ArbitrageScanner {
       profitRate,
       estimatedProfit: grossProfit,
       netProfit,
-      gasCost: this.config.estimatedGasCost,
+      gasCost: actualGasCost,
       timestamp: Date.now(),
       isProfitable: profitable,
     };

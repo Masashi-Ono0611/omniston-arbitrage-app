@@ -13,6 +13,8 @@ interface ScannerControlProps {
     tokenA: string,
     tokenB: string,
     amount: bigint,
+    slippageBps: number,
+    minProfitRate: number,
   ) => Promise<void> | void;
   onStop: () => void;
 }
@@ -23,6 +25,8 @@ export function ScannerControl({
   onStop,
 }: ScannerControlProps) {
   const [scanAmount, setScanAmount] = useState<string>("100");
+  const [slippagePercent, setSlippagePercent] = useState<string>("0.5");
+  const [minProfitRate, setMinProfitRate] = useState<string>("0.1");
   const [isStarting, setIsStarting] = useState(false);
 
   const isScanning = status === "scanning" || status === "initializing";
@@ -31,7 +35,9 @@ export function ScannerControl({
     setIsStarting(true);
     try {
       const amount = BigInt(Number(scanAmount) * 1_000000); // Convert to 6 decimals
-      await onStart(TOKEN_ADDRESSES.USDT, TOKEN_ADDRESSES.USDE, amount);
+      const slippageBps = Math.round(Number(slippagePercent) * 100); // Convert percent to basis points
+      const profitRate = Number(minProfitRate) / 100; // Convert percent to decimal
+      await onStart(TOKEN_ADDRESSES.USDT, TOKEN_ADDRESSES.USDE, amount, slippageBps, profitRate);
     } catch (error) {
       console.error("Failed to start scanning:", error);
     } finally {
@@ -68,6 +74,54 @@ export function ScannerControl({
           />
           <p className="mt-1 text-xs text-gray-500">
             Amount to use for arbitrage scanning
+          </p>
+        </div>
+
+        {/* Slippage input */}
+        <div>
+          <label
+            htmlFor="slippage"
+            className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Slippage Tolerance (%)
+          </label>
+          <input
+            id="slippage"
+            type="number"
+            value={slippagePercent}
+            onChange={(e) => setSlippagePercent(e.target.value)}
+            disabled={isScanning}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            min="0.1"
+            max="5"
+            step="0.1"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Maximum price slippage tolerance for profit calculation
+          </p>
+        </div>
+
+        {/* Minimum profit rate input */}
+        <div>
+          <label
+            htmlFor="profitRate"
+            className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            Target Profit Rate (%)
+          </label>
+          <input
+            id="profitRate"
+            type="number"
+            value={minProfitRate}
+            onChange={(e) => setMinProfitRate(e.target.value)}
+            disabled={isScanning}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            min="-5"
+            max="10"
+            step="0.1"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Minimum profit rate to detect as opportunity (use negative for testing)
           </p>
         </div>
 

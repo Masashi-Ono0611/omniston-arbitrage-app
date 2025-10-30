@@ -7,16 +7,20 @@ import { cn } from "@/lib/utils";
 
 interface OpportunityCardProps {
   opportunity: ArbitrageOpportunity;
+  targetProfitRate?: number;
   className?: string;
 }
 
 export function OpportunityCard({
   opportunity,
+  targetProfitRate,
   className,
 }: OpportunityCardProps) {
   const {
     profitRate,
     netProfit,
+    estimatedProfit,
+    gasCost,
     isProfitable,
     timestamp,
     forwardQuote,
@@ -32,6 +36,10 @@ export function OpportunityCard({
     const date = new Date(ts);
     return date.toLocaleTimeString();
   };
+
+  // Calculate slippage cost for display (estimated from current setting)
+  const slippageBps = 50; // This would be passed from scanner in real implementation
+  const slippageCost = (estimatedProfit * BigInt(slippageBps)) / 10000n;
 
   return (
     <div
@@ -82,7 +90,25 @@ export function OpportunityCard({
           {/* Profit details */}
           <div className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
             <div className="flex justify-between">
-              <span>Net Profit:</span>
+              <span>Gross Profit:</span>
+              <span className="font-mono">
+                {formatAmount(estimatedProfit)} USDT
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Gas Cost:</span>
+              <span className="font-mono text-red-600">
+                -{formatAmount(gasCost)} USDT*
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Slippage (0.5%):</span>
+              <span className="font-mono text-orange-600">
+                -{formatAmount(slippageCost)} USDT
+              </span>
+            </div>
+            <div className="flex justify-between border-t pt-1">
+              <span className="font-semibold">Net Profit:</span>
               <span
                 className={cn(
                   "font-mono font-semibold",
@@ -95,6 +121,14 @@ export function OpportunityCard({
             <div className="flex justify-between">
               <span>Detected:</span>
               <span className="font-mono">{formatTimestamp(timestamp)}</span>
+            </div>
+            {targetProfitRate !== undefined && (
+              <div className="mt-2 text-xs text-gray-500">
+                Target Profit Rate: {targetProfitRate}%
+              </div>
+            )}
+            <div className="text-xs text-gray-400">
+              *Gas cost calculated using hardcoded 1 TON = 2 USDT rate
             </div>
           </div>
         </div>
