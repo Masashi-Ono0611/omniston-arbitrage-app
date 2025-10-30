@@ -9,16 +9,13 @@ import {
 } from "@ston-fi/omniston-sdk-react";
 
 import {
-  ARBITRAGE_SLIPPAGE_BPS,
-  DEFAULT_SCAN_AMOUNT,
-  ESTIMATED_GAS_COST,
+  DEFAULT_GAS_UNITS,
+  DEFAULT_SLIPPAGE_BPS,
   MIN_PROFIT_RATE,
-  TOKEN_ADDRESSES,
 } from "./constants";
 import {
   calculateArbitrageProfit,
   calculateGasCostFromQuotes,
-  calculateMaxSlippageCost,
   calculateNetProfitWithSlippageCost,
   calculateReceivedAmount,
   isProfitableArbitrage,
@@ -26,6 +23,7 @@ import {
 import type {
   ArbitrageOpportunity,
   ArbitrageScannerConfig,
+  DebugInfo,
   QuoteStreamState,
 } from "./types";
 
@@ -42,7 +40,7 @@ import type {
 export class ArbitrageScanner {
   private omniston: Omniston;
   private config: ArbitrageScannerConfig;
-  private currentSlippageBps: number = 50; // Default 0.5%
+  private currentSlippageBps: number = DEFAULT_SLIPPAGE_BPS;
   private currentMinProfitRate: number = 0.001; // Default 0.1%
   
   // Quote stream states
@@ -77,21 +75,7 @@ export class ArbitrageScanner {
     rfqId: string,
     receivedAt: number,
   ) => void;
-  private onDebugCallback?: (debugInfo: {
-    forwardQuote: Quote | null;
-    reverseQuote: Quote | null;
-    grossProfit: bigint;
-    netProfit: bigint;
-    profitRate: number;
-    targetProfitRate: number;
-    isProfitable: boolean;
-    gasCost: bigint;
-    slippageCost: bigint;
-    slippageBps?: number;
-    slippageForward?: bigint;
-    slippageReverse?: bigint;
-    scanAmount: bigint;
-  }) => void;
+  private onDebugCallback?: (debugInfo: DebugInfo) => void;
 
   constructor(
     omniston: Omniston,
@@ -101,7 +85,7 @@ export class ArbitrageScanner {
     this.config = {
       minProfitRate: config?.minProfitRate ?? MIN_PROFIT_RATE,
       scanAmount: config?.scanAmount ?? 0n,
-      estimatedGasCost: config?.estimatedGasCost ?? ESTIMATED_GAS_COST,
+      estimatedGasCost: config?.estimatedGasCost ?? DEFAULT_GAS_UNITS,
     };
   }
 
@@ -113,7 +97,7 @@ export class ArbitrageScanner {
     tokenAAddress: string,
     tokenBAddress: string,
     scanAmount: bigint,
-    slippageBps: number = 50, // Default 0.5%
+    slippageBps: number = DEFAULT_SLIPPAGE_BPS,
     minProfitRate: number = 0.001, // Default 0.1%
   ): Promise<void> {
     // Stop any existing scans
@@ -127,8 +111,7 @@ export class ArbitrageScanner {
     // Subscribe to forward stream (tokenA → tokenB)
     await this.subscribeForwardStream(tokenAAddress, tokenBAddress, scanAmount, slippageBps);
 
-    // Wait a moment for forward quote to arrive
-    // This ensures we have a valid amount for the reverse stream
+    // Wait for forward quote to arrive
     await this.waitForForwardQuote();
 
     // Subscribe to reverse stream (tokenB → tokenA)
@@ -183,20 +166,7 @@ export class ArbitrageScanner {
   /**
    * Set callback for debug information
    */
-  onDebug(
-    callback: (debugInfo: {
-      forwardQuote: Quote | null;
-      reverseQuote: Quote | null;
-      grossProfit: bigint;
-      netProfit: bigint;
-      profitRate: number;
-      targetProfitRate: number;
-      isProfitable: boolean;
-      gasCost: bigint;
-      slippageCost: bigint;
-      scanAmount: bigint;
-    }) => void,
-  ): void {
+  onDebug(callback: (debugInfo: DebugInfo) => void): void {
     this.onDebugCallback = callback;
   }
 
@@ -407,8 +377,7 @@ export class ArbitrageScanner {
       slippageCost,
     );
 
-    // slippageCost already computed above
-
+    
     const profitable = isProfitableArbitrage(
       netProfit,
       this.currentMinProfitRate,
@@ -457,16 +426,8 @@ export class ArbitrageScanner {
   /**
    * Wait for forward quote to arrive
    */
-  private async waitForForwardQuote(
-    timeoutMs: number = 10000,
-  ): Promise<void> {
-    const startTime = Date.now();
-
+  private async waitForForwardQuote(): Promise<void> {
     while (!this.forwardStream.quote) {
-      if (Date.now() - startTime > timeoutMs) {
-        throw new Error("Timeout waiting for forward quote");
-      }
-
       // Wait 100ms before checking again
       await new Promise((resolve) => setTimeout(resolve, 100));
     }

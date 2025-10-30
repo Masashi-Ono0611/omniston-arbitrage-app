@@ -1,34 +1,21 @@
 "use client";
 
 import { Calculator } from "lucide-react";
-import type { Quote } from "@ston-fi/omniston-sdk-react";
+import { useMemo } from "react";
 
 import { cn } from "@/lib/utils";
+import type { DebugInfo } from "@/lib/arbitrage/types";
 
 interface DebugPanelProps {
-  debugInfo: {
-    forwardQuote: Quote | null;
-    reverseQuote: Quote | null;
-    grossProfit: bigint;
-    netProfit: bigint;
-    profitRate: number;
-    targetProfitRate: number;
-    isProfitable: boolean;
-    gasCost: bigint;
-    slippageCost: bigint;
-    slippageBps?: number;
-    slippageForward?: bigint;
-    slippageReverse?: bigint;
-    scanAmount: bigint;
-  } | null;
+  debugInfo: DebugInfo | null;
   className?: string;
 }
 
 export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
-  const formatAmount = (amount: bigint, decimals: number = 6): string => {
+  const formatAmount = useMemo(() => (amount: bigint, decimals: number = 6): string => {
     const value = Number(amount) / 10 ** decimals;
     return value.toFixed(decimals);
-  };
+  }, []);
 
   if (!debugInfo) {
     return (
@@ -197,7 +184,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
               <div className="flex justify-between">
                 <span className="text-gray-500">Max Slippage Cost:</span>
                 <span className="font-mono text-orange-600">
-                  -{formatAmount(slippageCost < 0n ? -slippageCost : slippageCost)} USDT
+                  -{formatAmount(slippageCost)} USDT
                 </span>
               </div>
               <div className="mt-1 space-y-1 pl-2 text-[11px] text-gray-500">
@@ -207,11 +194,11 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
                 </div>
                 <div className="flex justify-between">
                   <span>Forward Slip:</span>
-                  <span className="font-mono">-{formatAmount((slippageForward ?? 0n) < 0n ? -(slippageForward as bigint) : (slippageForward ?? 0n))} USDT</span>
+                  <span className="font-mono">-{formatAmount(slippageForward ?? 0n)} USDT</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Reverse Slip:</span>
-                  <span className="font-mono">-{formatAmount((slippageReverse ?? 0n) < 0n ? -(slippageReverse as bigint) : (slippageReverse ?? 0n))} USDT</span>
+                  <span className="font-mono">-{formatAmount(slippageReverse ?? 0n)} USDT</span>
                 </div>
               </div>
               <div className="flex justify-between border-t pt-1">

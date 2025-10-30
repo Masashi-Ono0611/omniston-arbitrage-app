@@ -3,13 +3,22 @@
  */
 
 /** Minimum profit rate threshold (%) for arbitrage opportunities */
-export const MIN_PROFIT_RATE = 0.1; // 0.1%
+export const MIN_PROFIT_RATE = 0.001; // 0.1%
 
 /** Default scan amount in USDT (6 decimals) - 100 USDT */
-export const DEFAULT_SCAN_AMOUNT = 100_000000n;
+export const DEFAULT_SCAN_AMOUNT = 100_000_000n;
 
-/** Estimated gas cost per transaction in nanoTON - approximately 0.5 TON */
-export const ESTIMATED_GAS_COST = 500_000000n; // 0.5 TON
+/** Default gas units for transactions in nanoTON - fallback and estimate */
+export const DEFAULT_GAS_UNITS = 0n;
+
+/** Default slippage tolerance for arbitrage swaps (in basis points) */
+export const DEFAULT_SLIPPAGE_BPS = 50; // 0.5%
+
+/** TON to USDT rate (6 decimals) - 2 USDT */
+export const TON_TO_USDT_RATE = 2_000_000n;
+
+/** Conversion rate from TON to nanoTON */
+export const NANO_TON_PER_TON = 1_000_000_000n; // 1 TON = 1,000,000,000 nanoTON
 
 /** TON contract addresses for arbitrage pairs */
 export const TOKEN_ADDRESSES = {
@@ -19,5 +28,4 @@ export const TOKEN_ADDRESSES = {
   USDE: "EQAIb6KmdfdDR7CN1GBqVJuP25iCnLKCvBlJ07Evuu2dzP5f",
 } as const;
 
-/** Slippage tolerance for arbitrage swaps (in basis points) */
-export const ARBITRAGE_SLIPPAGE_BPS = 50; // 0.5%
+

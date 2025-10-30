@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useOmniston } from "@/hooks/useOmniston";
 import type {
   ArbitrageOpportunity,
+  DebugInfo,
   QuoteStreamState,
   ScannerStatus,
 } from "@/lib/arbitrage/types";
@@ -25,21 +26,7 @@ export const useArbitrage = () => {
   const [currentOpportunity, setCurrentOpportunity] = useState<ArbitrageOpportunity | null>(null);
   const [opportunityHistory, setOpportunityHistory] = useState<ArbitrageOpportunity[]>([]);
   const [currentMinProfitRate, setCurrentMinProfitRate] = useState<number>(0.001); // Default 0.1%
-  const [debugInfo, setDebugInfo] = useState<{
-    forwardQuote: Quote | null;
-    reverseQuote: Quote | null;
-    grossProfit: bigint;
-    netProfit: bigint;
-    profitRate: number;
-    targetProfitRate: number;
-    isProfitable: boolean;
-    gasCost: bigint;
-    slippageCost: bigint;
-    slippageBps?: number;
-    slippageForward?: bigint;
-    slippageReverse?: bigint;
-    scanAmount: bigint;
-  } | null>(null);
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null);
   const [forwardStream, setForwardStream] = useState<QuoteStreamState>({
     quote: null,
     rfqId: null,

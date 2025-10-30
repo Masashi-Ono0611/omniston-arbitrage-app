@@ -1,6 +1,25 @@
 import type { Quote } from "@ston-fi/omniston-sdk-react";
 
 /**
+ * Debug information shared between scanner, hook, and panel
+ */
+export interface DebugInfo {
+  forwardQuote: Quote | null;
+  reverseQuote: Quote | null;
+  grossProfit: bigint;
+  netProfit: bigint;
+  profitRate: number;
+  targetProfitRate: number;
+  isProfitable: boolean;
+  gasCost: bigint;
+  slippageCost: bigint;
+  slippageBps?: number;
+  slippageForward?: bigint;
+  slippageReverse?: bigint;
+  scanAmount: bigint;
+}
+
+/**
  * Arbitrage opportunity detected between two assets
  */
 export interface ArbitrageOpportunity {

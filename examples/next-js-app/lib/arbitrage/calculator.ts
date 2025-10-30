@@ -1,4 +1,10 @@
 import type { Quote } from "@ston-fi/omniston-sdk-react";
+import { 
+  DEFAULT_GAS_UNITS, 
+  DEFAULT_SLIPPAGE_BPS,
+  TON_TO_USDT_RATE, 
+  NANO_TON_PER_TON 
+} from "./constants";
 
 /**
  * Calculate the amount received from a quote
@@ -44,7 +50,7 @@ export function calculateArbitrageProfit(
 export function calculateNetProfit(
   grossProfit: bigint,
   gasCost: bigint,
-  slippageBps: number = 50, // Default 0.5%
+  slippageBps: number = DEFAULT_SLIPPAGE_BPS,
 ): bigint {
   // Calculate slippage cost (slippageBps / 10000)
   const slippageCost = (grossProfit * BigInt(slippageBps)) / 10000n;
@@ -80,31 +86,22 @@ export function calculateGasCostFromQuotes(
   // Assuming 1 gas unit ≈ 1 nanoTON for TON blockchain
   if (forwardQuote.estimatedGasConsumption && forwardQuote.estimatedGasConsumption !== "") {
     forwardGas = BigInt(forwardQuote.estimatedGasConsumption);
-    console.log('[GAS] Forward estimatedGasConsumption:', forwardQuote.estimatedGasConsumption, '→', forwardGas.toString());
   } else {
-    // Fallback to default estimate if not available (0.065 TON = 65_000_000 nanoTON)
-    forwardGas = 65_000_000n;
-    console.log('[GAS] Forward using default:', forwardGas.toString());
+    // Fallback to default estimate if not available
+    forwardGas = DEFAULT_GAS_UNITS;
   }
   
   if (reverseQuote.estimatedGasConsumption && reverseQuote.estimatedGasConsumption !== "") {
     reverseGas = BigInt(reverseQuote.estimatedGasConsumption);
-    console.log('[GAS] Reverse estimatedGasConsumption:', reverseQuote.estimatedGasConsumption, '→', reverseGas.toString());
   } else {
-    reverseGas = 65_000_000n;
-    console.log('[GAS] Reverse using default:', reverseGas.toString());
+    reverseGas = DEFAULT_GAS_UNITS;
   }
   
   // Total gas cost in nanoTON
   const totalGasNanoTON = forwardGas + reverseGas;
-  console.log('[GAS] Total nanoTON:', totalGasNanoTON.toString());
   
-  // Convert nanoTON to USDT (1 TON = 2 USDT, hardcoded)
-  // 1 TON = 1_000_000_000 nanoTON
-  // 1 TON = 2 USDT = 2_000_000 USDT (6 decimals)
-  // Formula: nanoTON × 2_000_000 (USDT with 6 decimals) ÷ 1_000_000_000 (nanoTON per TON)
-  const gasCostInUSDT = (totalGasNanoTON * 2_000_000n) / 1_000_000_000n;
-  console.log('[GAS] Gas cost in USDT:', gasCostInUSDT.toString(), '(', Number(gasCostInUSDT) / 1e6, 'USDT)');
+  // Convert nanoTON to USDT using constants
+  const gasCostInUSDT = (totalGasNanoTON * TON_TO_USDT_RATE) / NANO_TON_PER_TON;
   
   return gasCostInUSDT;
 }
