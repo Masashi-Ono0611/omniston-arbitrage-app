@@ -87,7 +87,7 @@ const StatusBadge = memo(
 
     if (status === "success") {
       const statusText = isRfqActive
-        ? "Updating quotes..."
+        ? "Quote received & updating..."
         : "Quote received (RFQ stopped)";
 
       return (
