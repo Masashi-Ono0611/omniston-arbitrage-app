@@ -1,26 +1,32 @@
 import type { Quote } from "@ston-fi/omniston-sdk-react";
 
 /**
- * Debug information shared between scanner, hook, and panel
+ * Base interface for arbitrage calculations
  */
-export interface DebugInfo {
+export interface ArbitrageCalculation {
   forwardQuote: Quote | null;
   reverseQuote: Quote | null;
   grossProfit: bigint;
   netProfit: bigint;
-  targetProfitRate: number;
   gasCost: bigint;
   slippageCost: bigint;
+  scanAmount: bigint;
+}
+
+/**
+ * Debug information shared between scanner, hook, and panel
+ */
+export interface DebugInfo extends ArbitrageCalculation {
+  targetProfitRate: number;
   slippageBps?: number;
   slippageForward?: bigint;
   slippageReverse?: bigint;
-  scanAmount: bigint;
 }
 
 /**
  * Arbitrage opportunity detected between two assets
  */
-export interface ArbitrageOpportunity {
+export interface ArbitrageOpportunity extends ArbitrageCalculation {
   /** Asset pair [tokenA, tokenB] */
   pair: [string, string];
   /** Forward quote (tokenA → tokenB) */
@@ -31,10 +37,6 @@ export interface ArbitrageOpportunity {
   profitRate: number;
   /** Estimated profit in base units */
   estimatedProfit: bigint;
-  /** Net profit after gas costs */
-  netProfit: bigint;
-  /** Estimated gas cost */
-  gasCost: bigint;
   /** Timestamp when opportunity was detected */
   timestamp: number;
   /** Whether this opportunity is profitable after all costs */

@@ -17,7 +17,7 @@ import {
 import {
   calculateArbitrageProfit,
   calculateGasCostFromQuotes,
-  calculateNetProfitWithSlippageCost,
+  calculateNetProfit,
   calculateReceivedAmount,
   isProfitableArbitrage,
 } from "@/lib/arbitrage/calculator";
@@ -349,7 +349,7 @@ export class ArbitrageScanner {
     const reverseSlip = (reverseReceivedUsdt * BigInt(this.currentSlippageBps)) / 10000n;
     const slippageCost = forwardSlip + reverseSlip;
 
-    const netProfit = calculateNetProfitWithSlippageCost(
+    const netProfit = calculateNetProfit(
       grossProfit,
       actualGasCost,
       slippageCost,
@@ -389,6 +389,9 @@ export class ArbitrageScanner {
       estimatedProfit: grossProfit,
       netProfit,
       gasCost: actualGasCost,
+      grossProfit,
+      slippageCost,
+      scanAmount: this.config.scanAmount,
       timestamp: Date.now(),
       isProfitable: profitable,
     };

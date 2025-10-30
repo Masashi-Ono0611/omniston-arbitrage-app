@@ -50,22 +50,12 @@ export function calculateArbitrageProfit(
 export function calculateNetProfit(
   grossProfit: bigint,
   gasCost: bigint,
+  slippageCost?: bigint,
   slippageBps: number = DEFAULT_SLIPPAGE_BPS,
 ): bigint {
-  // Calculate slippage cost (slippageBps / 10000)
-  const slippageCost = (grossProfit * BigInt(slippageBps)) / 10000n;
-  return grossProfit - gasCost - slippageCost;
-}
-
-/**
- * Calculate net profit when explicit slippage cost is provided
- */
-export function calculateNetProfitWithSlippageCost(
-  grossProfit: bigint,
-  gasCost: bigint,
-  slippageCost: bigint,
-): bigint {
-  return grossProfit - gasCost - slippageCost;
+  // Use explicit slippage cost if provided, otherwise calculate from percentage
+  const actualSlippageCost = slippageCost ?? (grossProfit * BigInt(slippageBps)) / 10000n;
+  return grossProfit - gasCost - actualSlippageCost;
 }
 
 /**
