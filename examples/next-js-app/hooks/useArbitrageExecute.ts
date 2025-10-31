@@ -7,6 +7,7 @@ import { useQueryId } from "@/hooks/useQueryId";
 import { SWAP_CONFIG } from "@/lib/constants";
 import { modifyQueryId } from "@/lib/payload-utils";
 import type { ArbitrageOpportunity } from "@/lib/arbitrage/types";
+import { validateQuotesOrThrow } from "@/lib/quote-validation";
 
 /**
  * Hook for executing arbitrage opportunities using UI-specified slippage
@@ -17,13 +18,21 @@ export const useArbitrageExecute = () => {
   const omniston = useOmniston();
   const { getQueryIdAsBigInt } = useQueryId(wallet?.account.address.toString());
   const [isExecuting, setIsExecuting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const executeArbitrage = useCallback(
     async (opportunity: ArbitrageOpportunity) => {
       if (!wallet) throw new Error("Wallet not connected");
 
+      setError(null);
       setIsExecuting(true);
       try {
+        // Validate quotes before proceeding
+        validateQuotesOrThrow([
+          { quote: opportunity.forwardQuote, name: "Forward" },
+          { quote: opportunity.reverseQuote, name: "Reverse" },
+        ]);
+
         const [autoQueryId, walletAddress] = await Promise.all([
           getQueryIdAsBigInt(),
           Promise.resolve({
@@ -58,6 +67,9 @@ export const useArbitrageExecute = () => {
           validUntil: Math.floor(Date.now() / 1000) + SWAP_CONFIG.TRANSACTION_VALID_DURATION_SECONDS,
           messages,
         });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to execute arbitrage");
+        throw err; // Re-throw to maintain existing error handling
       } finally {
         setIsExecuting(false);
       }
@@ -65,5 +77,5 @@ export const useArbitrageExecute = () => {
     [wallet, omniston, tonConnect, getQueryIdAsBigInt],
   );
 
-  return { executeArbitrage, isExecuting };
+  return { executeArbitrage, isExecuting, error };
 };

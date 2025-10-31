@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Play, TrendingUp } from "lucide-react";
+import { ArrowRight, Play, TrendingUp, AlertCircle } from "lucide-react";
 
 import type { ArbitrageOpportunity } from "@/lib/arbitrage/types";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ export function OpportunityCard({
     slippageCost,
   } = opportunity;
 
-  const { executeArbitrage, isExecuting } = useArbitrageExecute();
+  const { executeArbitrage, isExecuting, error } = useArbitrageExecute();
   const wallet = useTonWallet();
 
   const actualRate = calculateProfitRate(netProfit, scanAmount);
@@ -54,6 +54,14 @@ export function OpportunityCard({
         className,
       )}
     >
+      {/* Error Display */}
+      {error && (
+        <div className="mb-3 flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <span className="text-sm text-red-700">{error}</span>
+        </div>
+      )}
+
       <div className="flex items-start justify-between">
         <div className="flex-1">
           {/* Profit indicator */}
