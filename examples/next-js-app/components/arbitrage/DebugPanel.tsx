@@ -169,7 +169,7 @@ export function DebugPanel({ debugInfo, className }: DebugPanelProps) {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Max Slippage Cost:</span>
-                <span className="font-mono text-red-600">
+                <span className="font-mono text-orange-600">
                   -{formatAmount(slippageCost)} USDT
                 </span>
               </div>

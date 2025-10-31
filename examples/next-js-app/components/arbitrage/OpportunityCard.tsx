@@ -22,7 +22,7 @@ export function OpportunityCard({
     netProfit,
     estimatedProfit,
     gasCost,
-    isProfitable,
+    isTargetAchieved,
     timestamp,
     forwardQuote,
     reverseQuote,
@@ -36,7 +36,7 @@ export function OpportunityCard({
     <div
       className={cn(
         "rounded-lg border p-4 transition-colors",
-        isProfitable
+        isTargetAchieved
           ? "border-green-500 bg-green-50 dark:bg-green-950/20"
           : "border-gray-300 bg-gray-50 dark:bg-gray-900",
         className,
@@ -49,13 +49,13 @@ export function OpportunityCard({
             <TrendingUp
               className={cn(
                 "h-5 w-5",
-                isProfitable ? "text-green-600" : "text-gray-500",
+                isTargetAchieved ? "text-green-600" : "text-gray-500",
               )}
             />
             <span
               className={cn(
                 "text-lg font-bold",
-                isProfitable ? "text-green-700" : "text-gray-700",
+                isTargetAchieved ? "text-green-700" : "text-gray-700",
               )}
             >
               {actualRate > 0 ? "+" : ""}
@@ -87,9 +87,9 @@ export function OpportunityCard({
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Gas Cost:</span>
+              <span>Gas Cost*:</span>
               <span className="font-mono text-red-600">
-                -{formatAmount(gasCost)} USDT*
+                -{formatAmount(gasCost)} USDT
               </span>
             </div>
             <div className="flex justify-between">
@@ -125,10 +125,10 @@ export function OpportunityCard({
         </div>
 
         {/* Status badge */}
-        {isProfitable && (
+        {isTargetAchieved && (
           <div className="ml-4">
             <span className="rounded-full bg-green-600 px-2 py-1 text-xs font-semibold text-white">
-              Profitable
+              Target Achieved
             </span>
           </div>
         )}

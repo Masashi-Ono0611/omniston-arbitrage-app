@@ -20,7 +20,7 @@ import {
   calculateNetProfit,
   calculateReceivedAmount,
   calculateProfitRate,
-  isProfitableArbitrage,
+  achievesTargetRate,
 } from "@/lib/arbitrage/calculator";
 import type {
   ArbitrageOpportunity,
@@ -358,7 +358,7 @@ export class ArbitrageScanner {
 
     const profitRate = calculateProfitRate(netProfit, this.config.scanAmount);
 
-    const profitable = isProfitableArbitrage(
+    const isTargetAchieved = achievesTargetRate(
       netProfit,
       this.currentMinProfitRate,
       this.config.scanAmount,
@@ -395,11 +395,11 @@ export class ArbitrageScanner {
       slippageCost,
       scanAmount: this.config.scanAmount,
       timestamp: Date.now(),
-      isProfitable: profitable,
+      isTargetAchieved: isTargetAchieved,
     };
 
-    // Notify if profitable
-    if (profitable) {
+    // Notify if target achieved
+    if (isTargetAchieved) {
       this.onOpportunityCallback?.(opportunity);
     }
   }

@@ -119,9 +119,9 @@ export function calculateProfitRate(netProfit: bigint, initialAmount: bigint): n
 }
 
 /**
- * Check if arbitrage opportunity is profitable
+ * Check if arbitrage opportunity achieves target profit rate
  */
-export function isProfitableArbitrage(
+export function achievesTargetRate(
   netProfit: bigint,
   minProfitRate: number,
   initialAmount: bigint,
