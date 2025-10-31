@@ -38,7 +38,9 @@ export function ScannerControl({
       return `Scan amount must be at least ${INPUT_LIMITS.MIN_SCAN_AMOUNT}`;
     }
     
-    if (isNaN(slippagePercent) || slippagePercent < INPUT_LIMITS.MIN_SLIPPAGE_PERCENT || slippagePercent > INPUT_LIMITS.MAX_SLIPPAGE_PERCENT) {
+    if (isNaN(slippagePercent) || 
+        slippagePercent < INPUT_LIMITS.MIN_SLIPPAGE_PERCENT || 
+        slippagePercent > INPUT_LIMITS.MAX_SLIPPAGE_PERCENT) {
       return `Slippage must be between ${INPUT_LIMITS.MIN_SLIPPAGE_PERCENT}% and ${INPUT_LIMITS.MAX_SLIPPAGE_PERCENT}%`;
     }
     
@@ -103,7 +105,7 @@ export function ScannerControl({
             disabled={isScanning}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             min={INPUT_LIMITS.MIN_SCAN_AMOUNT}
-            step="1"
+            step="0.01"
           />
           <p className="mt-1 text-xs text-gray-500">
             Amount to use for arbitrage scanning
@@ -127,7 +129,7 @@ export function ScannerControl({
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-900 dark:text-white"
             min={INPUT_LIMITS.MIN_SLIPPAGE_PERCENT}
             max={INPUT_LIMITS.MAX_SLIPPAGE_PERCENT}
-            step="0.1"
+            step="0.001"
           />
           <p className="mt-1 text-xs text-gray-500">
             Maximum price slippage tolerance for profit calculation

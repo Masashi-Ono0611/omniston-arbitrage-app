@@ -25,14 +25,10 @@ export const HISTORY_LIMITS = {
   OPPORTUNITY_HISTORY: 50,
 } as const;
 
-/** Input validation limits */
 export const INPUT_LIMITS = {
-  /** Minimum scan amount */
   MIN_SCAN_AMOUNT: 1,
-  /** Maximum slippage percentage */
-  MAX_SLIPPAGE_PERCENT: 5,
-  /** Minimum slippage percentage */
-  MIN_SLIPPAGE_PERCENT: 0.1,
+  MAX_SLIPPAGE_PERCENT: 100,
+  MIN_SLIPPAGE_PERCENT: 0.01,
 } as const;
 
 /** TON to USDT rate (6 decimals) - 2 USDT */
