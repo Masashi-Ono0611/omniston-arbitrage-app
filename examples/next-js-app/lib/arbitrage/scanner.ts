@@ -396,6 +396,7 @@ export class ArbitrageScanner {
       scanAmount: this.config.scanAmount,
       timestamp: Date.now(),
       isTargetAchieved: isTargetAchieved,
+      slippageBps: this.currentSlippageBps,
     };
 
     // Notify if target achieved

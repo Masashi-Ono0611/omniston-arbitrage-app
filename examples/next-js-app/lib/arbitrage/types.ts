@@ -41,6 +41,8 @@ export interface ArbitrageOpportunity extends ArbitrageCalculation {
   timestamp: number;
   /** Whether this opportunity achieves the target profit rate */
   isTargetAchieved: boolean;
+  /** Slippage tolerance in basis points used for this opportunity */
+  slippageBps: number;
 }
 
 /**

@@ -7,17 +7,16 @@ import { useQueryId } from "@/hooks/useQueryId";
 import { SWAP_CONFIG } from "@/lib/constants";
 import { modifyQueryId } from "@/lib/payload-utils";
 import type { ArbitrageOpportunity } from "@/lib/arbitrage/types";
-import { useSwapSettings } from "@/providers/swap-settings";
 
 /**
  * Hook for executing a single arbitrage opportunity
  * Executes both forward and reverse swaps in a single transaction
+ * Uses the slippage tolerance specified in the opportunity (from Scanner Control UI)
  */
 export const useArbitrageExecute = () => {
   const wallet = useTonWallet();
   const [tonConnect] = useTonConnectUI();
   const omniston = useOmniston();
-  const { autoSlippageTolerance } = useSwapSettings();
   const { getQueryIdAsBigInt } = useQueryId(wallet?.account.address.toString());
 
   const [isExecuting, setIsExecuting] = useState(false);
@@ -39,20 +38,22 @@ export const useArbitrageExecute = () => {
           blockchain: Blockchain.TON,
         };
 
+        // Use the slippage tolerance specified in Scanner Control UI (stored in opportunity.slippageBps)
+        // The quotes were already requested with this slippage, so we use useRecommendedSlippage: false
         const [forwardTransaction, reverseTransaction] = await Promise.all([
           omniston.buildTransfer({
             quote: opportunity.forwardQuote,
             sourceAddress: walletAddressObj,
             destinationAddress: walletAddressObj,
             gasExcessAddress: walletAddressObj,
-            useRecommendedSlippage: autoSlippageTolerance,
+            useRecommendedSlippage: false,
           }),
           omniston.buildTransfer({
             quote: opportunity.reverseQuote,
             sourceAddress: walletAddressObj,
             destinationAddress: walletAddressObj,
             gasExcessAddress: walletAddressObj,
-            useRecommendedSlippage: autoSlippageTolerance,
+            useRecommendedSlippage: false,
           }),
         ]);
 
@@ -74,7 +75,7 @@ export const useArbitrageExecute = () => {
         setIsExecuting(false);
       }
     },
-    [wallet, omniston, tonConnect, autoSlippageTolerance, getQueryIdAsBigInt],
+    [wallet, omniston, tonConnect, getQueryIdAsBigInt],
   );
 
   return {
