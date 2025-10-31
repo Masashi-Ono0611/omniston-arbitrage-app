@@ -20,15 +20,15 @@ export const getQuoteRemainingTime = (quote: Quote): number => {
  */
 export const formatExpirationTime = (quote: Quote): string => {
   const deadline = new Date(quote.tradeStartDeadline * 1000);
-  const now = new Date();
+  const currentTime = Date.now();
   
   // If expired, show "expired at"
-  if (deadline <= now) {
+  if (deadline.getTime() <= currentTime) {
     return `expired at ${deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
   }
   
   // If today, show just time with seconds
-  if (deadline.toDateString() === now.toDateString()) {
+  if (deadline.toDateString() === new Date(currentTime).toDateString()) {
     return `until ${deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
   }
   
@@ -40,10 +40,11 @@ export const formatExpirationTime = (quote: Quote): string => {
  * Validates quotes and throws an error if any are invalid
  */
 export const validateQuotesOrThrow = (quotes: { quote: Quote; name: string }[]) => {
-  const invalid = quotes.filter(({ quote }) => !isQuoteValid(quote));
-  
-  if (invalid.length > 0) {
-    const names = invalid.map(({ name }) => name);
-    throw new Error(`Quote expired: ${names.join(", ")}. Please get new quotes.`);
+  const invalidNames = quotes
+    .filter(({ quote }) => !isQuoteValid(quote))
+    .map(({ name }) => name);
+    
+  if (invalidNames.length > 0) {
+    throw new Error(`Quote expired: ${invalidNames.join(", ")}. Please get new quotes.`);
   }
 };

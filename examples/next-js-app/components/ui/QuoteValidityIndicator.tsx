@@ -14,31 +14,15 @@ export const QuoteValidityIndicator = ({
 }: QuoteValidityIndicatorProps) => {
   const isValid = isQuoteValid(quote);
   const remainingTime = getQuoteRemainingTime(quote);
+  const isExpiringSoon = isValid && remainingTime < 60;
 
-  if (!isValid) {
-    return (
-      <div className="flex items-center gap-2 text-red-600">
-        <AlertCircle className="h-4 w-4" />
-        <span className="text-sm font-medium">Quote expired</span>
-        {showExpirationTime && (
-          <span className="text-xs text-muted-foreground">
-            {formatExpirationTime(quote)}
-          </span>
-        )}
-      </div>
-    );
-  }
-
-  const isExpiringSoon = remainingTime < 60; // 1 minute
+  const statusColor = isValid ? (isExpiringSoon ? "text-yellow-600" : "text-green-600") : "text-red-600";
+  const statusText = isValid ? "Quote valid" : "Quote expired";
 
   return (
-    <div className={`flex items-center gap-2 ${isExpiringSoon ? "text-yellow-600" : "text-green-600"}`}>
-      {isExpiringSoon ? (
-        <Clock className="h-4 w-4" />
-      ) : (
-        <CheckCircle className="h-4 w-4" />
-      )}
-      <span className="text-sm font-medium">Quote valid</span>
+    <div className={`flex items-center gap-2 ${statusColor}`}>
+      {isValid ? (isExpiringSoon ? <Clock className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />) : <AlertCircle className="h-4 w-4" />}
+      <span className="text-sm font-medium">{statusText}</span>
       {showExpirationTime && (
         <span className="text-xs text-muted-foreground">
           {formatExpirationTime(quote)}

@@ -97,7 +97,6 @@ const SwapHeader = memo(
         <h3 className="font-medium">Swap {index + 1}</h3>
         <StatusBadge
           status={swap.status}
-          quoteHistory={swap.quoteHistory}
           isRfqActive={swap.isRfqActive}
         />
         {swap.isRfqActive && (
@@ -120,11 +119,9 @@ SwapHeader.displayName = "SwapHeader";
 const StatusBadge = memo(
   ({
     status,
-    quoteHistory,
     isRfqActive,
   }: {
     status: SwapItem["status"];
-    quoteHistory: SwapItem["quoteHistory"];
     isRfqActive: boolean;
   }) => {
     if (status === "loading") {
