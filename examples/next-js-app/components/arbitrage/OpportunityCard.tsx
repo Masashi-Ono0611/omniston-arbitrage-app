@@ -1,42 +1,54 @@
 "use client";
 
-import { ArrowRight, TrendingUp } from "lucide-react";
+import { ArrowRight, Play, TrendingUp } from "lucide-react";
 
 import type { ArbitrageOpportunity } from "@/lib/arbitrage/types";
 import { cn } from "@/lib/utils";
 import { formatAmount, formatTimestamp } from "@/lib/arbitrage/utils";
+import { calculateProfitRate } from "@/lib/arbitrage/calculator";
+import { Button } from "@/components/ui/button";
+import { useArbitrageExecute } from "@/hooks/useArbitrageExecute";
+import { useTonWallet } from "@tonconnect/ui-react";
 
 interface OpportunityCardProps {
   opportunity: ArbitrageOpportunity;
   targetProfitRate?: number;
   className?: string;
+  showExecuteButton?: boolean;
 }
 
 export function OpportunityCard({
   opportunity,
   targetProfitRate,
   className,
+  showExecuteButton = false,
 }: OpportunityCardProps) {
   const {
-    profitRate,
     netProfit,
     estimatedProfit,
     gasCost,
-    isProfitable,
+    isTargetAchieved,
     timestamp,
     forwardQuote,
     reverseQuote,
+    scanAmount,
+    slippageCost,
   } = opportunity;
 
-  // Calculate slippage cost for display (estimated from current setting)
-  const slippageBps = 50; // This would be passed from scanner in real implementation
-  const slippageCost = (estimatedProfit * BigInt(slippageBps)) / 10000n;
+  const { executeArbitrage, isExecuting } = useArbitrageExecute();
+  const wallet = useTonWallet();
+
+  const actualRate = calculateProfitRate(netProfit, scanAmount);
+
+  const handleExecute = () => {
+    executeArbitrage(opportunity).catch(console.error);
+  };
 
   return (
     <div
       className={cn(
         "rounded-lg border p-4 transition-colors",
-        isProfitable
+        isTargetAchieved
           ? "border-green-500 bg-green-50 dark:bg-green-950/20"
           : "border-gray-300 bg-gray-50 dark:bg-gray-900",
         className,
@@ -49,17 +61,17 @@ export function OpportunityCard({
             <TrendingUp
               className={cn(
                 "h-5 w-5",
-                isProfitable ? "text-green-600" : "text-gray-500",
+                isTargetAchieved ? "text-green-600" : "text-gray-500",
               )}
             />
             <span
               className={cn(
                 "text-lg font-bold",
-                isProfitable ? "text-green-700" : "text-gray-700",
+                isTargetAchieved ? "text-green-700" : "text-gray-700",
               )}
             >
-              {profitRate > 0 ? "+" : ""}
-              {profitRate.toFixed(3)}%
+              {actualRate > 0 ? "+" : ""}
+              {actualRate.toFixed(3)}%
             </span>
           </div>
 
@@ -87,13 +99,13 @@ export function OpportunityCard({
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Gas Cost:</span>
+              <span>Gas Cost*:</span>
               <span className="font-mono text-red-600">
-                -{formatAmount(gasCost)} USDT*
+                -{formatAmount(gasCost)} USDT
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Slippage (0.5%):</span>
+              <span>Slippage Cost:</span>
               <span className="font-mono text-orange-600">
                 -{formatAmount(slippageCost)} USDT
               </span>
@@ -115,7 +127,7 @@ export function OpportunityCard({
             </div>
             {targetProfitRate !== undefined && (
               <div className="mt-2 text-xs text-gray-500">
-                Target Profit Rate: {targetProfitRate}%
+                Target Profit Rate: {(targetProfitRate * 100).toFixed(1)}%
               </div>
             )}
             <div className="text-xs text-gray-400">
@@ -124,14 +136,25 @@ export function OpportunityCard({
           </div>
         </div>
 
-        {/* Status badge */}
-        {isProfitable && (
-          <div className="ml-4">
+        {/* Status badge and execute button */}
+        <div className="ml-4 flex flex-col gap-2">
+          {isTargetAchieved && (
             <span className="rounded-full bg-green-600 px-2 py-1 text-xs font-semibold text-white">
-              Profitable
+              Target Achieved
             </span>
-          </div>
-        )}
+          )}
+          {showExecuteButton && (
+            <Button
+              onClick={handleExecute}
+              disabled={!wallet || isExecuting}
+              size="sm"
+              variant={isTargetAchieved ? "default" : "outline"}
+              className="min-w-24"
+            >
+              {isExecuting ? "Executing..." : <><Play className="mr-1 h-3 w-3" />Execute</>}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

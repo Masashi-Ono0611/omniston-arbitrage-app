@@ -1,8 +1,30 @@
 # Omniston Next.js Demo App
 
-A production-ready Next.js application demonstrating the Omniston SDK for multi-swap operations on the TON blockchain. This app showcases best practices in DeFi application architecture, state management, and transaction handling.
+A production-ready Next.js application demonstrating the Omniston SDK for multi-swap operations and arbitrage opportunities on the TON blockchain. This app showcases best practices in DeFi application architecture, state management, and transaction handling.
 
 🔗 **Live Demo**: [https://omniston.ston.fi](https://omniston.ston.fi)
+
+## Features
+
+### Multi-Swap Operations
+- Execute multiple token swaps in a single transaction
+- Real-time quote fetching from multiple DEXs
+- Batch transaction execution with gas optimization
+- Support for up to 5 simultaneous swaps
+
+### Arbitrage Scanner
+- Real-time detection of arbitrage opportunities between USDT/USDe pairs
+- Live quote streaming from forward and reverse directions
+- Profit calculation including gas and slippage costs
+- Target profit rate configuration
+- One-click arbitrage execution for detected opportunities
+- Collapsible opportunity history with detailed tracking
+
+### Key Components
+- **Scanner Control**: Start/stop arbitrage scanning with configurable parameters
+- **Quote Stream Status**: Real-time monitoring of bid/ask quotes and gas estimates
+- **Opportunity Cards**: Visual display of profitable opportunities with execution buttons
+- **Debug Panel**: Detailed calculation breakdown for development and analysis
 
 ## Quick Start
 
@@ -32,9 +54,13 @@ The application follows a clean, modular architecture with clear separation of c
 ```
 /app              # Next.js App Router pages and API routes
 /components       # React components (UI + business logic)
+  /arbitrage      # Arbitrage-specific components
 /hooks            # Custom React hooks for business logic
 /lib              # Utility functions and helpers
+  /arbitrage      # Arbitrage calculation and type definitions
 /providers        # React Context providers for state management
+/models           # TypeScript type definitions
+/queries          # React Query query factories
 ```
 
 ### Component Naming Strategy
@@ -53,6 +79,18 @@ Components specific to the multi-swap functionality:
 - `MultiSwapBatchExecute.tsx` - Batch transaction execution
 - `MultiSwapQuotePreview.tsx` - Quote visualization with history
 - `MultiSwapHeader.tsx` - Feature header component
+
+#### Arbitrage Components (Located in `/components/arbitrage/`)
+Components specific to the arbitrage scanning functionality:
+- `OpportunityCard.tsx` - Display arbitrage opportunities with execution buttons
+- `QuoteStreamStatus.tsx` - Real-time quote monitoring with collapsible history
+- `DebugPanel.tsx` - Detailed calculation breakdown and debugging information
+- `ScannerControl.tsx` - Arbitrage scanner configuration and control
+
+**Why retain the `Multi` prefix?**
+1. **Future-proof**: Allows single-swap feature to be added without naming conflicts
+2. **Clear intent**: Immediately identifies components handling multiple operations
+3. **Consistency**: Maintains a predictable naming pattern
 
 ### Key Design Decisions
 
@@ -91,71 +129,30 @@ export type SwapItem = {
 #### 5. **Environment-Aware Logging** (`lib/logger.ts`)
 Conditional logging that prevents production leaks - debug output in development, silent in production.
 
-## RFQ Processing Flow
+#### 4. **Memoized Provider Functions** (`providers/assets.tsx`)
+All provider functions are wrapped in `useCallback` to prevent unnecessary re-renders and stabilize dependency chains.
 
-### Hybrid Strategy Implementation
-The multi-swap RFQ system uses a hybrid approach for optimal performance:
+#### 5. **Factory Pattern for State Initialization** (`providers/multi-swap.tsx`)
+Consistent object creation using `createEmptySwap()` factory function - eliminates duplication and ensures consistency.
 
-1. **Initialization Phase**
-   - Cleanup existing subscriptions
-   - Set up AbortController for cancellation
-   - Dispatch `START_QUOTING_ALL` to update UI
+#### 6. **Separation of Concerns: UI vs Logic** (`hooks/useBatchExecute.ts`, `hooks/useArbitrageExecute.ts`)
+Business logic in hooks (transaction building, message construction), presentation in components (user interaction, visual feedback).
 
-2. **Sequential First Quote Phase**
-   ```typescript
-   for (const swap of swaps) {
-     await getQuoteForSwap(swap); // Wait for first quote
-     // Move to next swap
-   }
-   ```
+#### 7. **Arbitrage Execution Pattern** (`hooks/useArbitrageExecute.ts`)
+Single arbitrage execution follows the same pattern as batch execution:
+- Parallel building of forward and reverse transfers
+- Message combination and QueryID application
+- Single transaction sending with proper error handling
 
-3. **Parallel Continuous Updates Phase**
-   - All subscriptions remain active
-   - Each swap receives independent quote updates
-   - UI updates in real-time via React state
+#### 8. **Provider Hierarchy** (`providers/index.tsx`)
+Carefully ordered provider stack:
+```
+1. QueryClient → 2. TonConnect → 3. Assets → 4. Omniston → 5. SwapSettings → 6. MultiSwap
+```
+Clear dependency flow prevents initialization issues.
 
-4. **Quote History Tracking**
-   ```typescript
-   quoteHistory: [{
-     quoteId: string;
-     receivedAt: number;
-     resolverName?: string;
-   }]
-   ```
-
-### Error Handling
-- **Individual swap failures**: Don't block other swaps
-- **Subscription cleanup**: Proper memory management
-- **Abort handling**: Graceful cancellation support
-
-### RFQ Unsubscribe Functionality
-
-The application supports manual cancellation of individual RFQ subscriptions:
-
-1. **Individual Swap Unsubscribe**
-   - Each active swap displays an "Unsubscribe" button
-   - Clicking stops quote updates for that specific swap
-   - Status changes from "Quote received & updating..." to "Quote received (RFQ stopped)"
-
-2. **State Management**
-   ```typescript
-   export type SwapItem = {
-     // ... other properties
-     isRfqActive: boolean; // Tracks if RFQ is still active
-   };
-   ```
-
-3. **Implementation Details**
-   - **Hook Centralization**: Single `useMultiSwapRfq` instance shared across components
-   - **Subscription Tracking**: Active subscriptions stored in `subscriptionsRef`
-   - **Server Communication**: Calls `v1beta7.quote.unsubscribe` method
-   - **UI Updates**: Real-time status reflection with proper state transitions
-
-4. **Usage**
-   ```typescript
-   const { unsubscribeSwap } = useMultiSwapRfq();
-   await unsubscribeSwap(swapId); // Manually stop RFQ for specific swap
-   ```
+#### 9. **Utility Function Consistency** (`lib/utils.ts`)
+Single-purpose utility functions (`decimalToPercent`, `percentToDecimal`) are self-documenting and prevent inline calculations.
 
 ## Important Implementation Notes
 

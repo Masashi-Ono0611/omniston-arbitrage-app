@@ -39,8 +39,8 @@ export interface ArbitrageOpportunity extends ArbitrageCalculation {
   estimatedProfit: bigint;
   /** Timestamp when opportunity was detected */
   timestamp: number;
-  /** Whether this opportunity is profitable after all costs */
-  isProfitable: boolean;
+  /** Whether this opportunity achieves the target profit rate */
+  isTargetAchieved: boolean;
 }
 
 /**

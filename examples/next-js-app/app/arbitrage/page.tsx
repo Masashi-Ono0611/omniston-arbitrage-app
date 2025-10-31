@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertCircle, TrendingUp } from "lucide-react";
+import { AlertCircle, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { useState } from "react";
 
 import { DebugPanel } from "@/components/arbitrage/DebugPanel";
 import { OpportunityCard } from "@/components/arbitrage/OpportunityCard";
@@ -9,6 +10,8 @@ import { ScannerControl } from "@/components/arbitrage/ScannerControl";
 import { useArbitrage } from "@/hooks/useArbitrage";
 
 export default function ArbitragePage() {
+  const [showOpportunityHistory, setShowOpportunityHistory] = useState(false);
+  
   const {
     status,
     error,
@@ -78,6 +81,7 @@ export default function ArbitragePage() {
               <OpportunityCard 
                 opportunity={currentOpportunity} 
                 targetProfitRate={currentMinProfitRate}
+                showExecuteButton={true}
               />
             </div>
           )}
@@ -86,9 +90,17 @@ export default function ArbitragePage() {
           {opportunityHistory.length > 0 && (
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-lg font-bold">
+                <button
+                  onClick={() => setShowOpportunityHistory(!showOpportunityHistory)}
+                  className="flex items-center gap-1 text-lg font-bold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                >
+                  {showOpportunityHistory ? (
+                    <ChevronUp className="h-5 w-5" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5" />
+                  )}
                   Opportunity History ({opportunityHistory.length})
-                </h2>
+                </button>
                 <button
                   onClick={clearHistory}
                   className="text-sm text-blue-600 hover:underline dark:text-blue-400"
@@ -96,15 +108,17 @@ export default function ArbitragePage() {
                   Clear History
                 </button>
               </div>
-              <div className="space-y-3">
-                {opportunityHistory.slice(0, 10).map((opp, index) => (
-                  <OpportunityCard
-                    key={`${opp.timestamp}-${index}`}
-                    opportunity={opp}
-                    targetProfitRate={currentMinProfitRate}
-                  />
-                ))}
-              </div>
+              {showOpportunityHistory && (
+                <div className="space-y-3">
+                  {opportunityHistory.slice(0, 10).map((opp, index) => (
+                    <OpportunityCard
+                      key={`${opp.timestamp}-${index}`}
+                      opportunity={opp}
+                      targetProfitRate={currentMinProfitRate}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -138,12 +152,12 @@ export default function ArbitragePage() {
             re-subscribing
           </li>
           <li>
-            • When both quotes are available, the system calculates potential
-            profit
+            • When both quotes are available, the system calculates net profit
+            rate (after gas and slippage costs)
           </li>
           <li>
-            • Profitable opportunities (after gas costs) are highlighted in
-            green
+            • Opportunities that achieve the target profit rate are highlighted
+            in green with &quot;Target Achieved&quot; badge
           </li>
         </ul>
       </div>

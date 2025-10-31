@@ -112,17 +112,19 @@ export function calculateMaxSlippageCost(
 }
 
 /**
- * Check if arbitrage opportunity is profitable
+ * Calculate profit rate from net profit and initial amount
  */
-export function isProfitableArbitrage(
+export function calculateProfitRate(netProfit: bigint, initialAmount: bigint): number {
+  return initialAmount === 0n ? 0 : (Number(netProfit) / Number(initialAmount)) * 100;
+}
+
+/**
+ * Check if arbitrage opportunity achieves target profit rate
+ */
+export function achievesTargetRate(
   netProfit: bigint,
   minProfitRate: number,
   initialAmount: bigint,
 ): boolean {
-  if (netProfit <= 0n) {
-    return false;
-  }
-
-  const actualProfitRate = Number((netProfit * 10000n) / initialAmount) / 100;
-  return actualProfitRate >= minProfitRate;
+  return calculateProfitRate(netProfit, initialAmount) >= (minProfitRate * 100);
 }
