@@ -38,7 +38,9 @@ export function ScannerControl({
       return `Scan amount must be at least ${INPUT_LIMITS.MIN_SCAN_AMOUNT}`;
     }
     
-    if (isNaN(slippagePercent) || slippagePercent < INPUT_LIMITS.MIN_SLIPPAGE_PERCENT || slippagePercent > INPUT_LIMITS.MAX_SLIPPAGE_PERCENT) {
+    if (isNaN(slippagePercent) || 
+        slippagePercent < INPUT_LIMITS.MIN_SLIPPAGE_PERCENT || 
+        slippagePercent > INPUT_LIMITS.MAX_SLIPPAGE_PERCENT) {
       return `Slippage must be between ${INPUT_LIMITS.MIN_SLIPPAGE_PERCENT}% and ${INPUT_LIMITS.MAX_SLIPPAGE_PERCENT}%`;
     }
     
