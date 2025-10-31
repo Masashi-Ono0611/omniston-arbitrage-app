@@ -151,14 +151,7 @@ export function OpportunityCard({
               variant={isTargetAchieved ? "default" : "outline"}
               className="min-w-24"
             >
-              {isExecuting ? (
-                "Executing..."
-              ) : (
-                <>
-                  <Play className="mr-1 h-3 w-3" />
-                  Execute
-                </>
-              )}
+              {isExecuting ? "Executing..." : <><Play className="mr-1 h-3 w-3" />Execute</>}
             </Button>
           )}
         </div>

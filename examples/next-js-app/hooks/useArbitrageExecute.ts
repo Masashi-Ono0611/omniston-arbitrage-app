@@ -28,23 +28,17 @@ export const useArbitrageExecute = () => {
    */
   const executeArbitrage = useCallback(
     async (opportunity: ArbitrageOpportunity) => {
-      if (!wallet) {
-        throw new Error("Wallet not connected");
-      }
+      if (!wallet) throw new Error("Wallet not connected");
 
       setIsExecuting(true);
 
       try {
         const autoQueryId = getQueryIdAsBigInt();
-        const walletAddress = wallet.account.address.toString();
-
-        // Create common address object
         const walletAddressObj = {
-          address: walletAddress,
+          address: wallet.account.address.toString(),
           blockchain: Blockchain.TON,
         };
 
-        // Build both transfers in parallel
         const [forwardTransaction, reverseTransaction] = await Promise.all([
           omniston.buildTransfer({
             quote: opportunity.forwardQuote,
@@ -62,7 +56,6 @@ export const useArbitrageExecute = () => {
           }),
         ]);
 
-        // Prepare messages for sending
         const messagesForSend = [
           ...(forwardTransaction.ton?.messages ?? []),
           ...(reverseTransaction.ton?.messages ?? []),
@@ -73,7 +66,6 @@ export const useArbitrageExecute = () => {
           stateInit: message.jettonWalletStateInit,
         }));
 
-        // Send transaction
         await tonConnect.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + SWAP_CONFIG.TRANSACTION_VALID_DURATION_SECONDS,
           messages: messagesForSend,
