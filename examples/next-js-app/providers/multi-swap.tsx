@@ -10,6 +10,9 @@ import {
 } from "react";
 
 import { SWAP_CONFIG } from "@/lib/constants";
+import { logger } from "@/lib/logger";
+
+export const DEFAULT_SLIPPAGE = 0.05;
 
 export type SwapItem = {
   id: string;
@@ -17,16 +20,22 @@ export type SwapItem = {
   askAddress: string;
   bidAmount: string;
   slippage: number;
+  autoSlippage: boolean;
   quote: Quote | null;
   rfqId: string | null;
   status: "idle" | "loading" | "success" | "error";
   error: string | null;
+  isRfqActive: boolean;
+  quoteHistory: {
+    quoteId: string;
+    receivedAt: number;
+    resolverName?: string;
+  }[];
 };
 
 type MultiSwapState = {
   swaps: SwapItem[];
   isQuotingAll: boolean;
-  currentQuotingIndex: number | null;
 };
 
 const createEmptySwap = (): SwapItem => ({
@@ -34,17 +43,19 @@ const createEmptySwap = (): SwapItem => ({
   bidAddress: "",
   askAddress: "",
   bidAmount: "",
-  slippage: 0.05,
+  slippage: DEFAULT_SLIPPAGE,
+  autoSlippage: false,
   quote: null,
   rfqId: null,
   status: "idle",
   error: null,
+  isRfqActive: false,
+  quoteHistory: [],
 });
 
 const initialState: MultiSwapState = {
   swaps: [createEmptySwap()],
   isQuotingAll: false,
-  currentQuotingIndex: null,
 };
 
 type MultiSwapAction =
@@ -56,7 +67,7 @@ type MultiSwapAction =
     }
   | {
       type: "SET_SWAP_QUOTE";
-      payload: { id: string; quote: Quote; rfqId: string };
+      payload: { id: string; quote: Quote; rfqId: string; receivedAt: number };
     }
   | {
       type: "SET_SWAP_STATUS";
@@ -66,8 +77,11 @@ type MultiSwapAction =
         error?: string | null;
       };
     }
+  | {
+      type: "SET_RFQ_ACTIVE";
+      payload: { id: string; isActive: boolean };
+    }
   | { type: "START_QUOTING_ALL" }
-  | { type: "SET_CURRENT_QUOTING_INDEX"; payload: number | null }
   | { type: "FINISH_QUOTING_ALL" }
   | { type: "RESET_SWAP_QUOTE"; payload: string };
 
@@ -105,21 +119,40 @@ const multiSwapReducer = (
         ),
       };
 
-    case "SET_SWAP_QUOTE":
-      return {
-        ...state,
-        swaps: state.swaps.map((swap) =>
+    case "SET_SWAP_QUOTE": {
+      // Force new object references for ALL swaps to ensure React detects changes
+      const nextSwaps: SwapItem[] = state.swaps.map(
+        (swap) =>
           swap.id === action.payload.id
             ? {
                 ...swap,
                 quote: action.payload.quote,
                 rfqId: action.payload.rfqId,
-                status: "success",
+                status: "success" as const,
                 error: null,
+                quoteHistory: [
+                  ...swap.quoteHistory,
+                  {
+                    quoteId: action.payload.quote.quoteId,
+                    receivedAt: action.payload.receivedAt,
+                    resolverName: action.payload.quote.resolverName,
+                  },
+                ],
               }
-            : swap,
-        ),
+            : { ...swap }, // Force new reference even for unchanged swaps
+      );
+      const h = action.payload.quote.quoteId;
+      logger.info(
+        `[STORE] SET_SWAP_QUOTE id=${action.payload.id} quoteId=${h} history_len=${
+          nextSwaps.find((s) => s.id === action.payload.id)?.quoteHistory
+            .length ?? 0
+        }`,
+      );
+      return {
+        ...state,
+        swaps: nextSwaps,
       };
+    }
 
     case "SET_SWAP_STATUS":
       return {
@@ -135,31 +168,38 @@ const multiSwapReducer = (
         ),
       };
 
+    case "SET_RFQ_ACTIVE":
+      return {
+        ...state,
+        swaps: state.swaps.map((swap) =>
+          swap.id === action.payload.id
+            ? {
+                ...swap,
+                isRfqActive: action.payload.isActive,
+              }
+            : swap,
+        ),
+      };
+
     case "START_QUOTING_ALL":
       return {
         ...state,
         isQuotingAll: true,
-        currentQuotingIndex: 0,
         swaps: state.swaps.map((swap) => ({
           ...swap,
           status: "idle",
           error: null,
           quote: null,
           rfqId: null,
+          isRfqActive: false,
+          quoteHistory: [],
         })),
-      };
-
-    case "SET_CURRENT_QUOTING_INDEX":
-      return {
-        ...state,
-        currentQuotingIndex: action.payload,
       };
 
     case "FINISH_QUOTING_ALL":
       return {
         ...state,
         isQuotingAll: false,
-        currentQuotingIndex: null,
       };
 
     case "RESET_SWAP_QUOTE":
@@ -167,7 +207,15 @@ const multiSwapReducer = (
         ...state,
         swaps: state.swaps.map((swap) =>
           swap.id === action.payload
-            ? { ...swap, quote: null, rfqId: null, status: "idle", error: null }
+            ? {
+                ...swap,
+                quote: null,
+                rfqId: null,
+                status: "idle",
+                error: null,
+                isRfqActive: false,
+                quoteHistory: [],
+              }
             : swap,
         ),
       };

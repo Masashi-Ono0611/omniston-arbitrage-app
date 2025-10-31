@@ -46,15 +46,16 @@ export function bigNumberToFloat(value: bigint | string, decimals: number) {
 
   display = display.padStart(decimals, "0");
 
-  // eslint-disable-next-line prefer-const
-  let [integer, fraction] = [
+  const [integer, fraction] = [
     display.slice(0, display.length - decimals),
     display.slice(display.length - decimals),
   ];
-  fraction = fraction.replace(/(0+)$/, "");
+
+  // fraction is modified, so it needs to be mutable
+  const mutableFraction = fraction.replace(/(0+)$/, "");
 
   return `${negative ? "-" : ""}${integer || "0"}${
-    fraction ? `.${fraction}` : ""
+    mutableFraction ? `.${mutableFraction}` : ""
   }`;
 }
 

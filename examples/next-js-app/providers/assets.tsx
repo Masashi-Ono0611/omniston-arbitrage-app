@@ -13,7 +13,7 @@ import { z } from "zod";
 
 import { CACHE_CONFIG, STORAGE_KEYS } from "@/lib/constants";
 import type { AssetMetadata } from "@/models/asset";
-import { assetQueryFactory } from "@/quries/assets";
+import { assetQueryFactory } from "@/queries/assets";
 
 type AssetsContextValue = {
   assetsQuery: ReturnType<

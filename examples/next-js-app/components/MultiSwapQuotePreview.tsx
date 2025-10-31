@@ -1,65 +1,222 @@
 "use client";
 
 import type { Quote, SwapSettlementParams } from "@ston-fi/omniston-sdk-react";
-import { ChevronDown } from "lucide-react";
-import React, { useState } from "react";
+import {
+  AlertCircle,
+  CheckCircle,
+  ChevronDown,
+  Loader2,
+  X,
+} from "lucide-react";
+import React, { memo, useState } from "react";
 
 import { AddressPreview } from "@/components/AddressPreview";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Copy } from "@/components/ui/copy";
-import { isSwapWithQuote } from "@/lib/type-guards";
 import { bigNumberToFloat, trimStringWithEllipsis } from "@/lib/utils";
 import { useAssets } from "@/providers/assets";
-import { useMultiSwap } from "@/providers/multi-swap";
+import { type SwapItem, useMultiSwap } from "@/providers/multi-swap";
 
-export const MultiSwapQuotePreview = () => {
+export const MultiSwapQuotePreview = ({
+  unsubscribeSwap,
+}: {
+  unsubscribeSwap: (swapId: string) => Promise<void>;
+}) => {
   const { swaps } = useMultiSwap();
 
-  const swapsWithQuotes = swaps.filter(isSwapWithQuote);
+  // Show swaps that are not idle (loading or success)
+  const activeSwaps = swaps.filter((swap) => swap.status !== "idle");
 
-  if (swapsWithQuotes.length === 0) {
+  if (activeSwaps.length === 0) {
     return null;
   }
 
   return (
     <div className="flex flex-col gap-3">
       <h2 className="text-lg font-medium">Quote Details</h2>
-      {swapsWithQuotes.map((swap, index) => (
-        <QuotePreviewCard
+      {activeSwaps.map((swap, index) => (
+        <SwapStatusCard
           key={swap.id}
-          quote={swap.quote}
-          rfqId={swap.rfqId}
+          swap={swap}
           index={index}
+          unsubscribeSwap={unsubscribeSwap}
         />
       ))}
     </div>
   );
 };
 
-const QuotePreviewCard = ({
-  quote,
-  rfqId,
-  index,
-}: {
-  quote: Quote;
-  rfqId: string;
-  index: number;
-}) => {
-  return (
-    <div className="flex flex-col gap-2 p-4 border rounded-md bg-card">
+const SwapStatusCard = memo(
+  ({
+    swap,
+    index,
+    unsubscribeSwap,
+  }: {
+    swap: SwapItem;
+    index: number;
+    unsubscribeSwap: (swapId: string) => Promise<void>;
+  }) => {
+    return (
+      <div className="flex flex-col gap-2 p-4 border rounded-md bg-card">
+        <SwapHeader
+          swap={swap}
+          index={index}
+          unsubscribeSwap={unsubscribeSwap}
+        />
+        <SwapContent swap={swap} />
+      </div>
+    );
+  },
+);
+SwapStatusCard.displayName = "SwapStatusCard";
+
+const SwapHeader = memo(
+  ({
+    swap,
+    index,
+    unsubscribeSwap,
+  }: {
+    swap: SwapItem;
+    index: number;
+    unsubscribeSwap: (swapId: string) => Promise<void>;
+  }) => {
+    const handleUnsubscribe = () => {
+      unsubscribeSwap(swap.id);
+    };
+
+    return (
       <div className="flex items-center gap-2 mb-2">
         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary font-medium text-sm shrink-0">
           {index + 1}
         </div>
         <h3 className="font-medium">Swap {index + 1}</h3>
+        <StatusBadge
+          status={swap.status}
+          quoteHistory={swap.quoteHistory}
+          isRfqActive={swap.isRfqActive}
+        />
+        {swap.isRfqActive && (
+          <Button
+            onClick={handleUnsubscribe}
+            variant="outline"
+            size="sm"
+            className="ml-auto h-6 px-2 text-xs"
+          >
+            <X size={12} className="mr-1" />
+            Unsubscribe
+          </Button>
+        )}
       </div>
-      <QuoteDataPresenter quote={quote} rfqId={rfqId} />
-      <hr />
-      <QuoteRouteVisualizer {...quote} />
+    );
+  },
+);
+SwapHeader.displayName = "SwapHeader";
+
+const StatusBadge = memo(
+  ({
+    status,
+    quoteHistory,
+    isRfqActive,
+  }: {
+    status: SwapItem["status"];
+    quoteHistory: SwapItem["quoteHistory"];
+    isRfqActive: boolean;
+  }) => {
+    if (status === "loading") {
+      return (
+        <div className="flex items-center gap-1 text-blue-600 dark:text-blue-400 ml-auto">
+          <Loader2 className="animate-spin" size={14} />
+          <span className="text-xs font-medium">Getting quote...</span>
+        </div>
+      );
+    }
+
+    if (status === "success") {
+      const statusText = isRfqActive
+        ? "Quote received & updating..."
+        : "Quote received (RFQ stopped)";
+
+      return (
+        <div className="flex items-center gap-1 text-green-600 dark:text-green-400 ml-auto">
+          <CheckCircle size={14} />
+          <span className="text-xs font-medium">{statusText}</span>
+        </div>
+      );
+    }
+
+    if (status === "error") {
+      return (
+        <div className="flex items-center gap-1 text-red-600 dark:text-red-400 ml-auto">
+          <AlertCircle size={14} />
+          <span className="text-xs font-medium">Error</span>
+        </div>
+      );
+    }
+
+    return null;
+  },
+);
+StatusBadge.displayName = "StatusBadge";
+
+const SwapContent = ({ swap }: { swap: SwapItem }) => {
+  if (swap.status === "loading") {
+    return (
+      <div className="text-sm text-muted-foreground py-4 text-center">
+        Waiting for quote response...
+      </div>
+    );
+  }
+
+  if (swap.status === "success" && swap.quote && swap.rfqId) {
+    return (
+      <>
+        <QuoteDataPresenter quote={swap.quote} rfqId={swap.rfqId} />
+        <hr />
+        <QuoteRouteVisualizer {...swap.quote} />
+        <hr />
+        <QuoteHistoryList history={swap.quoteHistory} />
+      </>
+    );
+  }
+
+  return null;
+};
+
+const QuoteHistoryList = ({
+  history,
+}: {
+  history: { quoteId: string; receivedAt: number; resolverName?: string }[];
+}) => {
+  if (!history || history.length === 0) return null;
+
+  return (
+    <div className="mt-2">
+      <h4 className="text-sm font-medium mb-2">Quote updates</h4>
+      <ul className="space-y-1 text-sm">
+        {history.map((h, i) => (
+          <li
+            key={`${h.quoteId}-${h.receivedAt}`}
+            className="flex items-center gap-2"
+          >
+            <span className="text-muted-foreground">{i + 1}.</span>
+            <span className="text-muted-foreground">
+              {new Date(h.receivedAt).toLocaleTimeString()}
+            </span>
+            <span className="text-muted-foreground">|</span>
+            <span className="text-muted-foreground">Resolver:</span>
+            <span>{h.resolverName ?? "N/A"}</span>
+            <span className="text-muted-foreground ml-2">Quote ID:</span>
+            <Copy value={h.quoteId}>
+              {trimStringWithEllipsis(h.quoteId, 6)}
+            </Copy>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 };
@@ -75,7 +232,6 @@ const QuoteDataPresenter = ({
 
   const askAsset = getAssetByAddress(quote.askAssetAddress.address);
   const bidAsset = getAssetByAddress(quote.bidAssetAddress.address);
-  // TODO: why protocolFeeAsset currently can be null?
   const protocolFeeAsset = getAssetByAddress(quote.protocolFeeAsset!.address);
 
   if (!askAsset || !bidAsset || !protocolFeeAsset) {
@@ -239,7 +395,6 @@ function SwapRouteVisualizerChunk({
 
   const { getAssetByAddress } = useAssets();
 
-  // TODO: why bidAssetAddress and askAssetAddress currently can be null?
   const bidAsset = getAssetByAddress(bidAssetAddress!.address);
   const askAsset = getAssetByAddress(askAssetAddress!.address);
 

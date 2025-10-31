@@ -115,7 +115,8 @@ export class ApiClient implements IApiClient {
    */
   readStream(method: string, subscriptionId: number): Observable<unknown> {
     return new Observable((subscriber) => {
-      this.getStreamConsumerMap(method).set(subscriptionId, (err, data) => {
+      const consumerMap = this.getStreamConsumerMap(method);
+      consumerMap.set(subscriptionId, (err, data) => {
         if (err) {
           subscriber.error(err);
           return;
@@ -157,6 +158,7 @@ export class ApiClient implements IApiClient {
     let result = this.streamConsumers.get(method);
     if (result) return result;
     result = new Map();
+    this.streamConsumers.set(method, result);
     this.serverAndClient.addMethod(method, (payload: StreamPayload) => {
       // Always get the latest map, not the closure-captured one
       const consumerMap = this.streamConsumers.get(method);

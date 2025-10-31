@@ -77,7 +77,7 @@ Components specific to the multi-swap functionality:
 - `MultiSwapForm.tsx` - Multi-swap configuration form
 - `MultiSwapActions.tsx` - Quote request actions
 - `MultiSwapBatchExecute.tsx` - Batch transaction execution
-- `MultiSwapQuotePreview.tsx` - Quote visualization
+- `MultiSwapQuotePreview.tsx` - Quote visualization with history
 - `MultiSwapHeader.tsx` - Feature header component
 
 #### Arbitrage Components (Located in `/components/arbitrage/`)
@@ -94,25 +94,39 @@ Components specific to the arbitrage scanning functionality:
 
 ### Key Design Decisions
 
-#### 1. **Centralized Configuration** (`lib/constants.ts`)
-All magic numbers and configuration values are defined as named constants:
-```typescript
-export const SWAP_CONFIG = {
-  MAX_SWAPS: 5,
-  MAX_OUTGOING_MESSAGES: 4,
-  TRANSACTION_VALID_DURATION_SECONDS: 5 * 60,
-} as const;
-```
-Single source of truth, easy to modify, self-documenting code.
+#### 1. **Hybrid RFQ Strategy** (`hooks/useMultiSwapRfq.ts`)
+Implements a sophisticated quote fetching approach:
+- **Sequential First Quote**: Process swaps one-by-one for initial quotes
+- **Parallel Continuous Updates**: All subscriptions remain active for real-time updates
+- **Quote History**: Tracks all quote updates with timestamps and resolver information
+- **Error Resilience**: Failed swaps don't block others from processing
 
-#### 2. **Type-Safe Validation** (`lib/validators.ts`, `lib/type-guards.ts`)
-Centralized validation logic with TypeScript type guards eliminates `!` non-null assertions and ensures type safety:
+#### 2. **Performance Optimization**
+- **React.memo**: Component memoization prevents unnecessary re-renders
+- **useCallback**: Stabilizes function references across renders
+- **useEffect Cleanup**: Proper memory management for subscriptions and timeouts
+- **Optimized State Updates**: Force new object references for React change detection
+
+#### 3. **SDK Bug Fix** (`packages/omniston-sdk/src/ApiClient/ApiClient.ts`)
+Fixed critical subscription routing bug:
+- **Problem**: Closure-captured Map reference prevented multiple subscriptions
+- **Solution**: Always reference latest Map in addMethod callback
+- **Impact**: Enables proper parallel quote updates for multiple swaps
+
+#### 4. **Type-Safe State Management** (`providers/multi-swap.tsx`)
 ```typescript
-export const isSwapWithQuote = (swap: SwapItem): swap is SwapItem & { quote: Quote } =>
-  swap.status === "success" && swap.quote !== null;
+export type SwapItem = {
+  id: string;
+  quoteHistory: {
+    quoteId: string;
+    receivedAt: number;
+    resolverName?: string;
+  }[];
+  // ... other properties
+};
 ```
 
-#### 3. **Environment-Aware Logging** (`lib/logger.ts`)
+#### 5. **Environment-Aware Logging** (`lib/logger.ts`)
 Conditional logging that prevents production leaks - debug output in development, silent in production.
 
 #### 4. **Memoized Provider Functions** (`providers/assets.tsx`)
@@ -142,29 +156,15 @@ Single-purpose utility functions (`decimalToPercent`, `percentToDecimal`) are se
 
 ## Important Implementation Notes
 
-### Error Handling Strategy
-- **Transaction errors**: Delegated to TonConnect UI for consistent UX
-- **Application errors**: Handled by Next.js error boundaries (`error.tsx`, `global-error.tsx`)
-- **Validation errors**: Caught at UI layer before API calls
-- **No redundant try-catch**: Avoid duplicate error handling across layers
-
 ### Asset Management
 - **Dynamic loading**: All assets fetched from Ston.fi API
 - **No hardcoded addresses**: Assets are API-driven, not hardcoded
 - **Wallet-aware**: Shows user's balance assets + popular assets
-- **Local storage cache**: Persists unconditional assets for better UX
-
-### QueryID System
-- **Auto-generated**: Unique 20-digit IDs for transaction tracking
-- **Timestamp-based**: Uses `Date.now()` + wallet address suffix
-- **Payload modification**: Applied to all transaction messages via `modifyQueryId()`
-- **Debug visibility**: Logged in development for troubleshooting
 
 ### State Management
 - **React Context**: For global state (assets, settings, multi-swap)
-- **React Query**: For server state (API data, caching)
-- **Local state**: For component-specific UI state
-- **No Redux**: Kept simple with Context + Hooks pattern
+- **Optimized updates**: Force new references for React change detection
+- **Quote history**: Persistent tracking of all quote updates
 
 ## Environment Variables
 
