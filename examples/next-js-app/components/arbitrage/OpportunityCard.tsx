@@ -5,6 +5,7 @@ import { ArrowRight, TrendingUp } from "lucide-react";
 import type { ArbitrageOpportunity } from "@/lib/arbitrage/types";
 import { cn } from "@/lib/utils";
 import { formatAmount, formatTimestamp } from "@/lib/arbitrage/utils";
+import { calculateProfitRate } from "@/lib/arbitrage/calculator";
 
 interface OpportunityCardProps {
   opportunity: ArbitrageOpportunity;
@@ -18,7 +19,6 @@ export function OpportunityCard({
   className,
 }: OpportunityCardProps) {
   const {
-    profitRate,
     netProfit,
     estimatedProfit,
     gasCost,
@@ -30,8 +30,7 @@ export function OpportunityCard({
     slippageCost,
   } = opportunity;
 
-  // Calculate actual rate using the same logic as DebugPanel
-  const actualRate = scanAmount ? ((Number(netProfit) / Number(scanAmount)) * 100) : profitRate;
+  const actualRate = calculateProfitRate(netProfit, scanAmount);
 
   return (
     <div

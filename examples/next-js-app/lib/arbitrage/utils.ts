@@ -68,15 +68,6 @@ export function createInitialQuoteStream() {
 }
 
 /**
- * Calculate profit rate from net profit and initial amount
- */
-export function calculateProfitRate(netProfit: bigint, initialAmount: bigint): number {
-  if (initialAmount === 0n) return 0;
-  // Convert basis points to percentage: (profit * 10000) / amount / 100
-  return Number((netProfit * 10000n) / initialAmount) / 100;
-}
-
-/**
  * Calculate total gas cost from two quotes
  */
 export function calculateTotalGasCost(forwardQuote: Quote, reverseQuote: Quote): bigint {

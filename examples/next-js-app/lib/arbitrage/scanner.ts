@@ -19,6 +19,7 @@ import {
   calculateGasCostFromQuotes,
   calculateNetProfit,
   calculateReceivedAmount,
+  calculateProfitRate,
   isProfitableArbitrage,
 } from "@/lib/arbitrage/calculator";
 import type {
@@ -355,10 +356,8 @@ export class ArbitrageScanner {
       slippageCost,
     );
 
-    // Calculate profit rate using same logic as DebugPanel (netProfit based)
-    const profitRate = this.config.scanAmount ? ((Number(netProfit) / Number(this.config.scanAmount)) * 100) : 0;
+    const profitRate = calculateProfitRate(netProfit, this.config.scanAmount);
 
-    
     const profitable = isProfitableArbitrage(
       netProfit,
       this.currentMinProfitRate,
