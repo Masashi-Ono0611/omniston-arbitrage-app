@@ -1,7 +1,7 @@
 "use client";
 
 import { useTonWallet } from "@tonconnect/ui-react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export const MultiSwapBatchExecute = () => {
   const { executeBatch, isExecuting } = useBatchExecute();
 
   const [isExecuted, setIsExecuted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const swapsWithQuotes = swaps.filter(isSwapWithQuote);
 
@@ -37,12 +38,17 @@ export const MultiSwapBatchExecute = () => {
   const hasInvalidQuotes = swapsWithQuotes.some(swap => !swap.quote || !isQuoteValid(swap.quote));
 
   const handleBatchExecute = async () => {
-    await executeBatch(swapsWithQuotes);
-    setIsExecuted(true);
+    setError(null);
+    try {
+      await executeBatch(swapsWithQuotes);
+      setIsExecuted(true);
 
-    // Reset all swap quotes after successful execution
-    for (const swap of swapsWithQuotes) {
-      dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id });
+      // Reset all swap quotes after successful execution
+      for (const swap of swapsWithQuotes) {
+        dispatch({ type: "RESET_SWAP_QUOTE", payload: swap.id });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to execute batch transaction");
     }
   };
 
@@ -59,6 +65,14 @@ export const MultiSwapBatchExecute = () => {
               </div>
             )}
           </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <span className="text-sm text-red-700">{error}</span>
+            </div>
+          )}
 
           {/* Swap List Preview */}
           <div className="space-y-2">
