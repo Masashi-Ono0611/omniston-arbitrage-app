@@ -129,29 +129,29 @@ export type SwapItem = {
 #### 5. **Environment-Aware Logging** (`lib/logger.ts`)
 Conditional logging that prevents production leaks - debug output in development, silent in production.
 
-#### 4. **Memoized Provider Functions** (`providers/assets.tsx`)
+#### 6. **Memoized Provider Functions** (`providers/assets.tsx`)
 All provider functions are wrapped in `useCallback` to prevent unnecessary re-renders and stabilize dependency chains.
 
-#### 5. **Factory Pattern for State Initialization** (`providers/multi-swap.tsx`)
+#### 7. **Factory Pattern for State Initialization** (`providers/multi-swap.tsx`)
 Consistent object creation using `createEmptySwap()` factory function - eliminates duplication and ensures consistency.
 
-#### 6. **Separation of Concerns: UI vs Logic** (`hooks/useBatchExecute.ts`, `hooks/useArbitrageExecute.ts`)
+#### 8. **Separation of Concerns: UI vs Logic** (`hooks/useBatchExecute.ts`, `hooks/useArbitrageExecute.ts`)
 Business logic in hooks (transaction building, message construction), presentation in components (user interaction, visual feedback).
 
-#### 7. **Arbitrage Execution Pattern** (`hooks/useArbitrageExecute.ts`)
+#### 9. **Arbitrage Execution Pattern** (`hooks/useArbitrageExecute.ts`)
 Single arbitrage execution follows the same pattern as batch execution:
 - Parallel building of forward and reverse transfers
 - Message combination and QueryID application
 - Single transaction sending with proper error handling
 
-#### 8. **Provider Hierarchy** (`providers/index.tsx`)
+#### 10. **Provider Hierarchy** (`providers/index.tsx`)
 Carefully ordered provider stack:
 ```
 1. QueryClient → 2. TonConnect → 3. Assets → 4. Omniston → 5. SwapSettings → 6. MultiSwap
 ```
 Clear dependency flow prevents initialization issues.
 
-#### 9. **Utility Function Consistency** (`lib/utils.ts`)
+#### 11. **Utility Function Consistency** (`lib/utils.ts`)
 Single-purpose utility functions (`decimalToPercent`, `percentToDecimal`) are self-documenting and prevent inline calculations.
 
 ## Important Implementation Notes
