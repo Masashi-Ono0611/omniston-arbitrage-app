@@ -1,18 +1,16 @@
 import type { Quote } from "@ston-fi/omniston-sdk-react";
 import { AlertCircle, Clock, CheckCircle } from "lucide-react";
 
-import { getQuoteRemainingTime, formatRemainingTime, isQuoteValid } from "@/lib/arbitrage/quote-validator";
+import { getQuoteRemainingTime, formatExpirationTime, isQuoteValid } from "@/lib/quote-validation";
 
 interface QuoteValidityIndicatorProps {
   quote: Quote;
-  label: string;
-  showRemainingTime?: boolean;
+  showExpirationTime?: boolean;
 }
 
 export const QuoteValidityIndicator = ({ 
   quote, 
-  label, 
-  showRemainingTime = true 
+  showExpirationTime = true
 }: QuoteValidityIndicatorProps) => {
   const isValid = isQuoteValid(quote);
   const remainingTime = getQuoteRemainingTime(quote);
@@ -21,12 +19,17 @@ export const QuoteValidityIndicator = ({
     return (
       <div className="flex items-center gap-2 text-red-600">
         <AlertCircle className="h-4 w-4" />
-        <span className="text-sm font-medium">{label}: 期限切れ</span>
+        <span className="text-sm font-medium">Quote expired</span>
+        {showExpirationTime && (
+          <span className="text-xs text-muted-foreground">
+            {formatExpirationTime(quote)}
+          </span>
+        )}
       </div>
     );
   }
 
-  const isExpiringSoon = remainingTime < 60; // 1分以内
+  const isExpiringSoon = remainingTime < 60; // 1 minute
 
   return (
     <div className={`flex items-center gap-2 ${isExpiringSoon ? "text-yellow-600" : "text-green-600"}`}>
@@ -35,9 +38,11 @@ export const QuoteValidityIndicator = ({
       ) : (
         <CheckCircle className="h-4 w-4" />
       )}
-      <span className="text-sm font-medium">{label}</span>
-      {showRemainingTime && (
-        <span className="text-sm">({formatRemainingTime(remainingTime)})</span>
+      <span className="text-sm font-medium">Quote valid</span>
+      {showExpirationTime && (
+        <span className="text-xs text-muted-foreground">
+          {formatExpirationTime(quote)}
+        </span>
       )}
     </div>
   );

@@ -25,8 +25,8 @@ export const useArbitrageExecute = () => {
 
       // Validate quotes before proceeding
       validateQuotesOrThrow([
-        { quote: opportunity.forwardQuote, identifier: "順方向" },
-        { quote: opportunity.reverseQuote, identifier: "逆方向" },
+        { quote: opportunity.forwardQuote, name: "Forward" },
+        { quote: opportunity.reverseQuote, name: "Reverse" },
       ]);
 
       setIsExecuting(true);

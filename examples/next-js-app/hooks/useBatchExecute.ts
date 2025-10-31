@@ -35,7 +35,7 @@ export const useBatchExecute = () => {
         validateQuotesOrThrow(
           swaps.map((swap, index) => ({
             quote: swap.quote!,
-            identifier: `スワップ ${index + 1}`,
+            name: `Swap ${index + 1}`,
           }))
         );
 

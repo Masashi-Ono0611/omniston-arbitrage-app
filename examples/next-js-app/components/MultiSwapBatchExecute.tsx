@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useBatchExecute } from "@/hooks/useBatchExecute";
 import { isSwapWithQuote } from "@/lib/type-guards";
 import { bigNumberToFloat } from "@/lib/utils";
-import { isQuoteValid } from "@/lib/arbitrage/quote-validator";
+import { isQuoteValid } from "@/lib/quote-validation";
 import { useAssets } from "@/providers/assets";
 import { useMultiSwap, useMultiSwapDispatch } from "@/providers/multi-swap";
 import { QuoteValidityIndicator } from "@/components/ui/QuoteValidityIndicator";
@@ -92,8 +92,7 @@ export const MultiSwapBatchExecute = () => {
                   </div>
                   <QuoteValidityIndicator 
                     quote={swap.quote} 
-                    label={`スワップ ${index + 1}`}
-                    showRemainingTime={true}
+                    showExpirationTime={true}
                   />
                 </div>
               );
@@ -114,7 +113,7 @@ export const MultiSwapBatchExecute = () => {
                   Executing Batch Transaction...
                 </>
               ) : hasInvalidQuotes ? (
-                "一部のQuoteが期限切れです"
+                "Some quotes have expired"
               ) : (
                 `Execute All ${swapsWithQuotes.length} Swaps (Batch)`
               )}
