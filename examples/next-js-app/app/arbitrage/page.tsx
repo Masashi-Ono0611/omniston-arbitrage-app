@@ -138,12 +138,12 @@ export default function ArbitragePage() {
             re-subscribing
           </li>
           <li>
-            • When both quotes are available, the system calculates potential
-            profit
+            • When both quotes are available, the system calculates net profit
+            rate (after gas and slippage costs)
           </li>
           <li>
-            • Profitable opportunities (after gas costs) are highlighted in
-            green
+            • Opportunities that achieve the target profit rate are highlighted
+            in green with "Target Achieved" badge
           </li>
         </ul>
       </div>
