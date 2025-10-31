@@ -119,10 +119,6 @@ export function isProfitableArbitrage(
   minProfitRate: number,
   initialAmount: bigint,
 ): boolean {
-  if (netProfit <= 0n) {
-    return false;
-  }
-
   const actualProfitRate = Number((netProfit * 10000n) / initialAmount) / 100;
-  return actualProfitRate >= minProfitRate;
+  return actualProfitRate >= (minProfitRate * 100);
 }

@@ -26,11 +26,12 @@ export function OpportunityCard({
     timestamp,
     forwardQuote,
     reverseQuote,
+    scanAmount,
+    slippageCost,
   } = opportunity;
 
-  // Calculate slippage cost for display (estimated from current setting)
-  const slippageBps = 50; // This would be passed from scanner in real implementation
-  const slippageCost = (estimatedProfit * BigInt(slippageBps)) / 10000n;
+  // Calculate actual rate using the same logic as DebugPanel
+  const actualRate = scanAmount ? ((Number(netProfit) / Number(scanAmount)) * 100) : profitRate;
 
   return (
     <div
@@ -58,8 +59,8 @@ export function OpportunityCard({
                 isProfitable ? "text-green-700" : "text-gray-700",
               )}
             >
-              {profitRate > 0 ? "+" : ""}
-              {profitRate.toFixed(3)}%
+              {actualRate > 0 ? "+" : ""}
+              {actualRate.toFixed(3)}%
             </span>
           </div>
 
@@ -93,7 +94,7 @@ export function OpportunityCard({
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Slippage (0.5%):</span>
+              <span>Slippage Cost:</span>
               <span className="font-mono text-orange-600">
                 -{formatAmount(slippageCost)} USDT
               </span>

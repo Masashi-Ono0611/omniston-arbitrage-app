@@ -334,7 +334,7 @@ export class ArbitrageScanner {
     }
 
     // Calculate profit
-    const { grossProfit, profitRate } = calculateArbitrageProfit(
+    const { grossProfit } = calculateArbitrageProfit(
       forwardQuote,
       reverseQuote,
       this.config.scanAmount,
@@ -354,6 +354,9 @@ export class ArbitrageScanner {
       actualGasCost,
       slippageCost,
     );
+
+    // Calculate profit rate using same logic as DebugPanel (netProfit based)
+    const profitRate = this.config.scanAmount ? ((Number(netProfit) / Number(this.config.scanAmount)) * 100) : 0;
 
     
     const profitable = isProfitableArbitrage(
