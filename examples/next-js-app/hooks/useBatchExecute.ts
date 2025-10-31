@@ -8,6 +8,7 @@ import { SWAP_CONFIG } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { modifyQueryId } from "@/lib/payload-utils";
 import type { SwapItem } from "@/providers/multi-swap";
+import { validateQuotesOrThrow } from "@/lib/quote-validation";
 
 /**
  * Hook for batch executing multiple swaps in a single transaction
@@ -30,6 +31,14 @@ export const useBatchExecute = () => {
       setIsExecuting(true);
 
       try {
+        // Validate all quotes before proceeding
+        validateQuotesOrThrow(
+          swaps.map((swap, index) => ({
+            quote: swap.quote!,
+            identifier: `スワップ ${index + 1}`,
+          }))
+        );
+
         // Generate auto QueryID for this batch transaction
         const autoQueryId = getQueryIdAsBigInt();
 

@@ -7,6 +7,7 @@ import { useQueryId } from "@/hooks/useQueryId";
 import { SWAP_CONFIG } from "@/lib/constants";
 import { modifyQueryId } from "@/lib/payload-utils";
 import type { ArbitrageOpportunity } from "@/lib/arbitrage/types";
+import { validateQuotesOrThrow } from "@/lib/quote-validation";
 
 /**
  * Hook for executing arbitrage opportunities using UI-specified slippage
@@ -21,6 +22,12 @@ export const useArbitrageExecute = () => {
   const executeArbitrage = useCallback(
     async (opportunity: ArbitrageOpportunity) => {
       if (!wallet) throw new Error("Wallet not connected");
+
+      // Validate quotes before proceeding
+      validateQuotesOrThrow([
+        { quote: opportunity.forwardQuote, identifier: "順方向" },
+        { quote: opportunity.reverseQuote, identifier: "逆方向" },
+      ]);
 
       setIsExecuting(true);
       try {
