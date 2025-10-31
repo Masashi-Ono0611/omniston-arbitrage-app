@@ -157,7 +157,7 @@ export default function ArbitragePage() {
           </li>
           <li>
             • Opportunities that achieve the target profit rate are highlighted
-            in green with "Target Achieved" badge
+            in green with &quot;Target Achieved&quot; badge
           </li>
         </ul>
       </div>
