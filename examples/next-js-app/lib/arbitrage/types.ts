@@ -1,8 +1,5 @@
 import type { Quote } from "@ston-fi/omniston-sdk-react";
 
-/**
- * Base interface for arbitrage calculations
- */
 export interface ArbitrageCalculation {
   forwardQuote: Quote | null;
   reverseQuote: Quote | null;
@@ -13,9 +10,6 @@ export interface ArbitrageCalculation {
   scanAmount: bigint;
 }
 
-/**
- * Debug information shared between scanner, hook, and panel
- */
 export interface DebugInfo extends ArbitrageCalculation {
   targetProfitRate: number;
   slippageBps?: number;
@@ -23,25 +17,14 @@ export interface DebugInfo extends ArbitrageCalculation {
   slippageReverse?: bigint;
 }
 
-/**
- * Arbitrage opportunity detected between two assets
- */
 export interface ArbitrageOpportunity extends ArbitrageCalculation {
-  /** Asset pair [tokenA, tokenB] */
   pair: [string, string];
-  /** Forward quote (tokenA → tokenB) */
   forwardQuote: Quote;
-  /** Reverse quote (tokenB → tokenA) */
   reverseQuote: Quote;
-  /** Profit rate in percentage (%) */
   profitRate: number;
-  /** Estimated profit in base units */
   estimatedProfit: bigint;
-  /** Timestamp when opportunity was detected */
   timestamp: number;
-  /** Whether this opportunity achieves the target profit rate */
   isTargetAchieved: boolean;
-  /** Slippage tolerance in basis points used for this opportunity */
   slippageBps: number;
 }
 

@@ -9,57 +9,44 @@ import { modifyQueryId } from "@/lib/payload-utils";
 import type { ArbitrageOpportunity } from "@/lib/arbitrage/types";
 
 /**
- * Hook for executing a single arbitrage opportunity
- * Executes both forward and reverse swaps in a single transaction
- * Uses the slippage tolerance specified in the opportunity (from Scanner Control UI)
+ * Hook for executing arbitrage opportunities using UI-specified slippage
  */
 export const useArbitrageExecute = () => {
   const wallet = useTonWallet();
   const [tonConnect] = useTonConnectUI();
   const omniston = useOmniston();
   const { getQueryIdAsBigInt } = useQueryId(wallet?.account.address.toString());
-
   const [isExecuting, setIsExecuting] = useState(false);
 
-  /**
-   * Execute arbitrage opportunity by building and sending both swaps
-   * @param opportunity - The arbitrage opportunity to execute
-   */
   const executeArbitrage = useCallback(
     async (opportunity: ArbitrageOpportunity) => {
       if (!wallet) throw new Error("Wallet not connected");
 
       setIsExecuting(true);
-
       try {
-        const autoQueryId = getQueryIdAsBigInt();
-        const walletAddressObj = {
-          address: wallet.account.address.toString(),
-          blockchain: Blockchain.TON,
-        };
-
-        // Use the slippage tolerance specified in Scanner Control UI (stored in opportunity.slippageBps)
-        // The quotes were already requested with this slippage, so we use useRecommendedSlippage: false
-        const [forwardTransaction, reverseTransaction] = await Promise.all([
-          omniston.buildTransfer({
-            quote: opportunity.forwardQuote,
-            sourceAddress: walletAddressObj,
-            destinationAddress: walletAddressObj,
-            gasExcessAddress: walletAddressObj,
-            useRecommendedSlippage: false,
-          }),
-          omniston.buildTransfer({
-            quote: opportunity.reverseQuote,
-            sourceAddress: walletAddressObj,
-            destinationAddress: walletAddressObj,
-            gasExcessAddress: walletAddressObj,
-            useRecommendedSlippage: false,
+        const [autoQueryId, walletAddress] = await Promise.all([
+          getQueryIdAsBigInt(),
+          Promise.resolve({
+            address: wallet.account.address.toString(),
+            blockchain: Blockchain.TON,
           }),
         ]);
 
-        const messagesForSend = [
-          ...(forwardTransaction.ton?.messages ?? []),
-          ...(reverseTransaction.ton?.messages ?? []),
+        const buildOptions = {
+          sourceAddress: walletAddress,
+          destinationAddress: walletAddress,
+          gasExcessAddress: walletAddress,
+          useRecommendedSlippage: false as const,
+        };
+
+        const [forwardTx, reverseTx] = await Promise.all([
+          omniston.buildTransfer({ ...buildOptions, quote: opportunity.forwardQuote }),
+          omniston.buildTransfer({ ...buildOptions, quote: opportunity.reverseQuote }),
+        ]);
+
+        const messages = [
+          ...(forwardTx.ton?.messages ?? []),
+          ...(reverseTx.ton?.messages ?? []),
         ].map((message) => ({
           address: message.targetAddress,
           amount: message.sendAmount,
@@ -69,7 +56,7 @@ export const useArbitrageExecute = () => {
 
         await tonConnect.sendTransaction({
           validUntil: Math.floor(Date.now() / 1000) + SWAP_CONFIG.TRANSACTION_VALID_DURATION_SECONDS,
-          messages: messagesForSend,
+          messages,
         });
       } finally {
         setIsExecuting(false);
@@ -78,8 +65,5 @@ export const useArbitrageExecute = () => {
     [wallet, omniston, tonConnect, getQueryIdAsBigInt],
   );
 
-  return {
-    executeArbitrage,
-    isExecuting,
-  };
+  return { executeArbitrage, isExecuting };
 };
