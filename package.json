@@ -16,9 +16,9 @@
     "dev": "turbo dev --filter=@ston-fi/omniston-example-next-js-app..."
   },
   "devDependencies": {
-    "@biomejs/biome": "2.2.6",
-    "lefthook": "2.0.0",
-    "turbo": "2.5.8",
+    "@biomejs/biome": "2.3.8",
+    "lefthook": "2.0.9",
+    "turbo": "2.6.3",
     "typescript": "5.9.3"
   }
 }

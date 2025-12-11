@@ -10,11 +10,11 @@ export class FakeApiClient implements IApiClient {
   public connectionStatus: ConnectionStatus = "ready";
   public readonly connectionStatusEvents = new Subject<ConnectionStatusEvent>();
 
-  async send(method: string, payload: unknown): Promise<unknown> {
+  async send(_method: string, _payload: unknown): Promise<unknown> {
     return {};
   }
 
-  readStream(method: string, subscriptionId: number): Observable<unknown> {
+  readStream(_method: string, _subscriptionId: number): Observable<unknown> {
     return new Observable();
   }
 
